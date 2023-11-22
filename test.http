@@ -1,0 +1,23 @@
+# POST http://127.0.0.1:8090/api/collections/users/auth-with-password HTTP/1.1
+# Content-Type: application/json
+
+# {
+#     "identity":"test_user",
+#     "password":"test_user"
+# }
+
+
+POST http://127.0.0.1:8090/api/collections/user_list/records HTTP/1.1
+Content-Type: application/json
+Authorization: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJjb2xsZWN0aW9uSWQiOiJfcGJfdXNlcnNfYXV0aF8iLCJleHAiOjE3MDE4Njk4MjQsImlkIjoiMHlxNXE2OXhsZWZ5Mm4wIiwidHlwZSI6ImF1dGhSZWNvcmQifQ.IwlvWKX_txaGj2cU6zWBN6tRZw3XNj3CZ_cYXfCfxlE
+
+{
+    "phone_num": "test",
+    "name": "test",
+    "classes": "test",
+    "gruop_lv1": "test",
+    "gruop_lv2": "test",
+    "gruop_lv3": "test",
+    "tmp1": "test",
+    "tmp2": "test"
+}

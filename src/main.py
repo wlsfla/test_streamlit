@@ -44,37 +44,42 @@ def SendData():
     
     if len(user_list_df) == 0:
         st.session_state.userlist_result_str = _FAILED_CODE
-
-    for idx in range(len(user_list_df)):
-        _result = common.post(_url,
-                    user_list_df.iloc[idx].to_dict()
-                    )
-        if _result != 200:
-            break
-        
-    if _result == 200:
-        st.session_state.userlist_result_str = _COMPLETE_CODE + ' ' + common.getCurrDate()
     else:
-        st.session_state.userlist_result_str = _FAILED_CODE + ' ' + common.getCurrDate()
+        for idx in range(len(user_list_df)):
+            _result = common.post(_url,
+                        user_list_df.iloc[idx].to_dict()
+                        )
+            if _result != 200:
+                break
+            
+        if _result == 200:
+            st.session_state.userlist_result_str = _COMPLETE_CODE + ' ' + common.getCurrDate()
+        else:
+            st.session_state.userlist_result_str = _FAILED_CODE + ' ' + common.getCurrDate()
     
-
-
     if len(hw_list_df) == 0:
         st.session_state.assetlist_result_str = _FAILED_CODE + ' ' + common.getCurrDate()
-
-    _url = 'http://127.0.0.1:8090/api/collections/hw_list/records'
-    for idx in range(len(hw_list_df)):
-        _result = common.post(_url,
-                    hw_list_df.iloc[idx].to_dict()
-                    )
-        if _result != 200:
-            break
-        
-    if _result == 200:
-        st.session_state.assetlist_result_str = _COMPLETE_CODE + ' ' + common.getCurrDate()
     else:
-        st.session_state.assetlist_result_str = _FAILED_CODE + ' ' + common.getCurrDate()
+        _url = 'http://127.0.0.1:8090/api/collections/hw_list/records'
+        for idx in range(len(hw_list_df)):
+            _result = common.post(_url,
+                        hw_list_df.iloc[idx].to_dict()
+                        )
+            if _result != 200:
+                break
+            
+        if _result == 200:
+            st.session_state.assetlist_result_str = _COMPLETE_CODE + ' ' + common.getCurrDate()
+        else:
+            st.session_state.assetlist_result_str = _FAILED_CODE + ' ' + common.getCurrDate()
 
+    
+    # http://127.0.0.1:8090/api/collections/hw_usage_status/records
+
+def clearList():
+    pass
 
 st.button('Send', on_click=SendData)
+
+
 

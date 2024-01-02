@@ -112,6 +112,10 @@ st.button('Send', on_click=SendData)
 
 st.divider()
 
+st.subheader('Vendor List')
+_res = Common().get(url='http://127.0.0.1:8090/api/collections/vendor_list/records')
+st.dataframe(pd.DataFrame(_res.json()['items'], columns=common._VENDOR_COL))
+
 st.subheader('User List')
 _res = Common().get(url='http://127.0.0.1:8090/api/collections/user_list/records')
 st.dataframe(pd.DataFrame(_res.json()['items'], columns=common._USER_COL))
@@ -119,3 +123,4 @@ st.dataframe(pd.DataFrame(_res.json()['items'], columns=common._USER_COL))
 st.subheader('Asset List')
 _res = Common().get(url='http://127.0.0.1:8090/api/collections/hw_list/records')
 st.dataframe(pd.DataFrame(_res.json()['items'], columns=common._ASSET_COL))
+

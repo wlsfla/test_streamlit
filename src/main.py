@@ -1,8 +1,7 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import common
-from common import Common
+from common import Common, Session
 import json
 
 st.set_page_config(
@@ -26,10 +25,11 @@ if 'userlist_result_str' not in st.session_state:
 if 'assetlist_result_str' not in st.session_state:
     st.session_state['assetlist_result_str'] = _DEFAULT_CODE
 
+Session.setLoginToken()
 
 st.header('User List')
 user_list_df = st.data_editor(pd.DataFrame(
-    columns=common._USER_COL), # 8 columns
+    columns=Common._USER_COL), # 8 columns
     num_rows="dynamic",
     key='user_df'
     )
@@ -37,7 +37,7 @@ st.caption(st.session_state.userlist_result_str)
 
 st.header('Asset List')
 hw_list_df = st.data_editor(
-    pd.DataFrame(columns=common._ASSET_COL), # 8 columns
+    pd.DataFrame(columns=Common._ASSET_COL), # 8 columns
     column_config={
         'build_year': st.column_config.NumberColumn(
             'build_year',
@@ -113,14 +113,14 @@ st.button('Send', on_click=SendData)
 st.divider()
 
 st.subheader('Vendor List')
-_res = Common().get(url='http://127.0.0.1:8090/api/collections/vendor_list/records')
-st.dataframe(pd.DataFrame(_res.json()['items'], columns=common._VENDOR_COL))
+_res = Common.get(url='http://127.0.0.1:8090/api/collections/vendor_list/records')
+st.dataframe(pd.DataFrame(_res.json()['items'], columns=Common._VENDOR_COL))
 
 st.subheader('User List')
-_res = Common().get(url='http://127.0.0.1:8090/api/collections/user_list/records')
-st.dataframe(pd.DataFrame(_res.json()['items'], columns=common._USER_COL))
+_res = Common.get(url='http://127.0.0.1:8090/api/collections/user_list/records')
+st.dataframe(pd.DataFrame(_res.json()['items'], columns=Common._USER_COL))
 
 st.subheader('Asset List')
-_res = Common().get(url='http://127.0.0.1:8090/api/collections/hw_list/records')
-st.dataframe(pd.DataFrame(_res.json()['items'], columns=common._ASSET_COL))
+_res = Common.get(url='http://127.0.0.1:8090/api/collections/hw_list/records')
+st.dataframe(pd.DataFrame(_res.json()['items'], columns=Common._ASSET_COL))
 

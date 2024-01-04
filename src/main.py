@@ -65,8 +65,8 @@ def SendData():
         _url = 'http://127.0.0.1:8090/api/collections/user_list/records'
         for idx in range(len(user_list_df)):
             _result = com.post(url=_url,
-                                  payload=user_list_df.iloc[idx].to_dict()
-                                  )
+                               payload=user_list_df.iloc[idx].to_dict()
+                               )
 
             if _result.status_code == 200:
                 _userListId.append(_result.json()['id'])
@@ -107,20 +107,21 @@ def SendData():
 def clearList():
     pass
 
+def tableGenerator(_tbl_name: str, _col_array: list[str]):
+    return st.dataframe(pd.DataFrame(
+        Common.get(url=f'http://127.0.0.1:8090/api/collections/{_tbl_name}/records').json()['items'],
+        columns=_col_array))
+
 st.button('Send', on_click=SendData)
 
 
 st.divider()
 
 st.subheader('Vendor List')
-_res = Common.get(url='http://127.0.0.1:8090/api/collections/vendor_list/records')
-st.dataframe(pd.DataFrame(_res.json()['items'], columns=Common._VENDOR_COL))
+tableGenerator("vendor_list", Common._VENDOR_COL)
 
 st.subheader('User List')
-_res = Common.get(url='http://127.0.0.1:8090/api/collections/user_list/records')
-st.dataframe(pd.DataFrame(_res.json()['items'], columns=Common._USER_COL))
+tableGenerator("user_list", Common._USER_COL)
 
 st.subheader('Asset List')
-_res = Common.get(url='http://127.0.0.1:8090/api/collections/hw_list/records')
-st.dataframe(pd.DataFrame(_res.json()['items'], columns=Common._ASSET_COL))
-
+tableGenerator('hw_list', Common._ASSET_COL)

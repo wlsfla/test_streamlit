@@ -1,4 +1,3 @@
-// 1703881970
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
 // -------------------------------------------------------------------
@@ -194,20 +193,6 @@ declare var $template: template.Registry
  * @group PocketBase
  */
 declare function readerToString(reader: any, maxBytes?: number): string;
-
-/**
- * sleep pauses the current goroutine for at least the specified user duration (in ms).
- * A zero or negative duration returns immediately.
- *
- * Example:
- *
- * ```js
- * slee(250) // sleeps for 250ms
- * ```
- *
- * @group PocketBase
- */
-declare function sleep(milliseconds: number): void;
 
 /**
  * arrayOf creates a placeholder array of the specified models.
@@ -429,7 +414,7 @@ declare class DateTime implements types.DateTime {
 interface ValidationError extends ozzo_validation.Error{} // merge
 /**
  * ValidationError defines a single formatted data validation error,
- * usually used as part of an error response.
+ * usually used as part of a error response.
  *
  * ```js
  * new ValidationError("invalid_title", "Title is not valid")
@@ -559,23 +544,6 @@ declare namespace $tokens {
 }
 
 // -------------------------------------------------------------------
-// mailsBinds
-// -------------------------------------------------------------------
-
-/**
- * `$mails` defines helpers to send common
- * admins and auth records emails like verification, password reset, etc.
- *
- * @group PocketBase
- */
-declare namespace $mails {
-  let sendAdminPasswordReset:  mails.sendAdminPasswordReset
-  let sendRecordPasswordReset: mails.sendRecordPasswordReset
-  let sendRecordVerification:  mails.sendRecordVerification
-  let sendRecordChangeEmail:   mails.sendRecordChangeEmail
-}
-
-// -------------------------------------------------------------------
 // securityBinds
 // -------------------------------------------------------------------
 
@@ -590,6 +558,9 @@ declare namespace $security {
   let randomStringWithAlphabet:       security.randomStringWithAlphabet
   let pseudorandomString:             security.pseudorandomString
   let pseudorandomStringWithAlphabet: security.pseudorandomStringWithAlphabet
+  let parseUnverifiedJWT:             security.parseUnverifiedJWT
+  let parseJWT:                       security.parseJWT
+  let createJWT:                      security.newJWT
   let encrypt:                        security.encrypt
   let decrypt:                        security.decrypt
   let hs256:                          security.hs256
@@ -598,17 +569,6 @@ declare namespace $security {
   let md5:                            security.md5
   let sha256:                         security.sha256
   let sha512:                         security.sha512
-  let createJWT:                      security.newJWT
-
-  /**
-   * {@inheritDoc security.parseUnverifiedJWT}
-   */
-  export function parseUnverifiedJWT(token: string): _TygojaDict
-
-  /**
-   * {@inheritDoc security.parseJWT}
-   */
-  export function parseJWT(token: string, verificationKey: string): _TygojaDict
 }
 
 // -------------------------------------------------------------------
@@ -953,7 +913,6 @@ declare namespace $apis {
    */
   export function staticDirectoryHandler(dir: string, indexFallback: boolean): echo.HandlerFunc
 
-  let requireGuestOnly:          apis.requireGuestOnly
   let requireRecordAuth:         apis.requireRecordAuth
   let requireAdminAuth:          apis.requireAdminAuth
   let requireAdminAuthOnlyIfAny: apis.requireAdminAuthOnlyIfAny
@@ -1453,11 +1412,9 @@ namespace os {
    * about the underlying operating system process.
    * 
    * On Unix systems, FindProcess always succeeds and returns a Process
-   * for the given pid, regardless of whether the process exists. To test whether
-   * the process actually exists, see whether p.Signal(syscall.Signal(0)) reports
-   * an error.
+   * for the given pid, regardless of whether the process exists.
    */
-  (pid: number): (Process)
+  (pid: number): (Process | undefined)
  }
  interface startProcess {
   /**
@@ -1475,7 +1432,7 @@ namespace os {
    * 
    * If there is an error, it will be of type *PathError.
    */
-  (name: string, argv: Array<string>, attr: ProcAttr): (Process)
+  (name: string, argv: Array<string>, attr: ProcAttr): (Process | undefined)
  }
  interface Process {
   /**
@@ -1501,7 +1458,7 @@ namespace os {
    * On most operating systems, the Process must be a child
    * of the current process or an error will be returned.
    */
-  wait(): (ProcessState)
+  wait(): (ProcessState | undefined)
  }
  interface Process {
   /**
@@ -1637,19 +1594,8 @@ namespace os {
    */
   readFrom(r: io.Reader): number
  }
- /**
-  * fileWithoutReadFrom implements all the methods of *File other
-  * than ReadFrom. This is used to permit ReadFrom to call io.Copy
-  * without leading to a recursive call to ReadFrom.
-  */
- type _subftmwE = File
- interface fileWithoutReadFrom extends _subftmwE {
- }
- interface fileWithoutReadFrom {
-  /**
-   * This ReadFrom method hides the *File ReadFrom method.
-   */
-  readFrom(_arg0: fileWithoutReadFrom): void
+ type _subUBXdg = io.Writer
+ interface onlyWriter extends _subUBXdg {
  }
  interface File {
   /**
@@ -1676,6 +1622,10 @@ namespace os {
    * relative to the current offset, and 2 means relative to the end.
    * It returns the new offset and an error, if any.
    * The behavior of Seek on a file opened with O_APPEND is not specified.
+   * 
+   * If f is a directory, the behavior of Seek varies by operating
+   * system; you can seek to the beginning of the directory on Unix-like
+   * operating systems, but not on Windows.
    */
   seek(offset: number, whence: number): number
  }
@@ -1708,7 +1658,7 @@ namespace os {
    * descriptor has mode O_RDONLY.
    * If there is an error, it will be of type *PathError.
    */
-  (name: string): (File)
+  (name: string): (File | undefined)
  }
  interface create {
   /**
@@ -1718,7 +1668,7 @@ namespace os {
    * be used for I/O; the associated file descriptor has mode O_RDWR.
    * If there is an error, it will be of type *PathError.
    */
-  (name: string): (File)
+  (name: string): (File | undefined)
  }
  interface openFile {
   /**
@@ -1729,14 +1679,13 @@ namespace os {
    * methods on the returned File can be used for I/O.
    * If there is an error, it will be of type *PathError.
    */
-  (name: string, flag: number, perm: FileMode): (File)
+  (name: string, flag: number, perm: FileMode): (File | undefined)
  }
  interface rename {
   /**
    * Rename renames (moves) oldpath to newpath.
    * If newpath already exists and is not a directory, Rename replaces it.
    * OS-specific restrictions may apply when oldpath and newpath are in different directories.
-   * Even within the same directory, on non-Unix platforms Rename is not an atomic operation.
    * If there is an error, it will be of type *LinkError.
    */
   (oldpath: string): void
@@ -1798,9 +1747,6 @@ namespace os {
    * On Unix, including macOS, it returns the $HOME environment variable.
    * On Windows, it returns %USERPROFILE%.
    * On Plan 9, it returns the $home environment variable.
-   * 
-   * If the expected variable is not set in the environment, UserHomeDir
-   * returns either a platform-specific default value or a non-nil error.
    */
   (): string
  }
@@ -1905,30 +1851,13 @@ namespace os {
    * 
    * The directory dir must not be "".
    * 
-   * The result implements [io/fs.StatFS], [io/fs.ReadFileFS] and
-   * [io/fs.ReadDirFS].
+   * The result implements fs.StatFS.
    */
   (dir: string): fs.FS
  }
  interface dirFS extends String{}
  interface dirFS {
   open(name: string): fs.File
- }
- interface dirFS {
-  /**
-   * The ReadFile method calls the [ReadFile] function for the file
-   * with the given name in the directory. The function provides
-   * robust handling for small files and special file systems.
-   * Through this method, dirFS implements [io/fs.ReadFileFS].
-   */
-  readFile(name: string): string|Array<number>
- }
- interface dirFS {
-  /**
-   * ReadDir reads the named directory, returning all its directory entries sorted
-   * by filename. Through this method, dirFS implements [io/fs.ReadDirFS].
-   */
-  readDir(name: string): Array<DirEntry>
  }
  interface dirFS {
   stat(name: string): fs.FileInfo
@@ -1947,8 +1876,6 @@ namespace os {
    * WriteFile writes data to the named file, creating it if necessary.
    * If the file does not exist, WriteFile creates it with permissions perm (before umask);
    * otherwise WriteFile truncates it before writing, without changing permissions.
-   * Since WriteFile requires multiple system calls to complete, a failure mid-operation
-   * can leave the file in a partially written state.
    */
   (name: string, data: string|Array<number>, perm: FileMode): void
  }
@@ -2014,7 +1941,6 @@ namespace os {
   /**
    * Chtimes changes the access and modification times of the named
    * file, similar to the Unix utime() or utimes() functions.
-   * A zero time.Time value will leave the corresponding file time unchanged.
    * 
    * The underlying filesystem may truncate or round the values to a
    * less precise time unit.
@@ -2067,7 +1993,7 @@ namespace os {
    * conditions described in the comments of the Fd method, and the same
    * constraints apply.
    */
-  (fd: number, name: string): (File)
+  (fd: number, name: string): (File | undefined)
  }
  /**
   * newFileKind describes the kind of file to newFile.
@@ -2125,9 +2051,6 @@ namespace os {
  interface unixDirent {
   info(): FileInfo
  }
- interface unixDirent {
-  string(): string
- }
  interface getwd {
   /**
    * Getwd returns a rooted path name corresponding to the
@@ -2170,7 +2093,7 @@ namespace os {
    * Pipe returns a connected pair of Files; reads from r return bytes written to w.
    * It returns the files and an error, if any.
    */
-  (): [(File), (File)]
+  (): [(File | undefined), (File | undefined)]
  }
  interface getuid {
   /**
@@ -2277,7 +2200,7 @@ namespace os {
    * The caller can use the file's Name method to find the pathname of the file.
    * It is the caller's responsibility to remove the file when it is no longer needed.
    */
-  (dir: string): (File)
+  (dir: string): (File | undefined)
  }
  interface mkdirTemp {
   /**
@@ -2300,8 +2223,8 @@ namespace os {
  /**
   * File represents an open file descriptor.
   */
- type _subZIwYK = file
- interface File extends _subZIwYK {
+ type _subIbJlT = file
+ interface File extends _subIbJlT {
  }
  /**
   * A FileInfo describes a file and is returned by Stat and Lstat.
@@ -2358,7 +2281,7 @@ namespace os {
  * The filepath package uses either forward slashes or backslashes,
  * depending on the operating system. To process paths such as URLs
  * that always use forward slashes regardless of the operating
- * system, see the [path] package.
+ * system, see the path package.
  */
 namespace filepath {
  interface match {
@@ -2439,36 +2362,11 @@ namespace filepath {
    * If the result of this process is an empty string, Clean
    * returns the string ".".
    * 
-   * On Windows, Clean does not modify the volume name other than to replace
-   * occurrences of "/" with `\`.
-   * For example, Clean("//host/share/../x") returns `\\host\share\x`.
-   * 
    * See also Rob Pike, “Lexical File Names in Plan 9 or
    * Getting Dot-Dot Right,”
    * https://9p.io/sys/doc/lexnames.html
    */
   (path: string): string
- }
- interface isLocal {
-  /**
-   * IsLocal reports whether path, using lexical analysis only, has all of these properties:
-   * 
-   * ```
-   *   - is within the subtree rooted at the directory in which path is evaluated
-   *   - is not an absolute path
-   *   - is not empty
-   *   - on Windows, is not a reserved name such as "NUL"
-   * ```
-   * 
-   * If IsLocal(path) returns true, then
-   * Join(base, path) will always produce a path contained within base and
-   * Clean(path) will always produce an unrooted path with no ".." path elements.
-   * 
-   * IsLocal is a purely lexical operation.
-   * In particular, it does not account for the effect of any symbolic links
-   * that may exist in the filesystem.
-   */
-  (path: string): boolean
  }
  interface toSlash {
   /**
@@ -2578,9 +2476,8 @@ namespace filepath {
   * The error result returned by the function controls how Walk continues.
   * If the function returns the special value SkipDir, Walk skips the
   * current directory (path if info.IsDir() is true, otherwise path's
-  * parent directory). If the function returns the special value SkipAll,
-  * Walk skips all remaining files and directories. Otherwise, if the function
-  * returns a non-nil error, Walk stops entirely and returns that error.
+  * parent directory). Otherwise, if the function returns a non-nil error,
+  * Walk stops entirely and returns that error.
   * 
   * The err argument reports an error related to path, signaling that Walk
   * will not walk into that directory. The function can decide how to
@@ -2613,10 +2510,6 @@ namespace filepath {
    * to walk that directory.
    * 
    * WalkDir does not follow symbolic links.
-   * 
-   * WalkDir calls fn with paths that use the separator character appropriate
-   * for the operating system. This is unlike [io/fs.WalkDir], which always
-   * uses slash separated paths.
    */
   (root: string, fn: fs.WalkDirFunc): void
  }
@@ -2633,9 +2526,6 @@ namespace filepath {
  }
  interface statDirEntry {
   info(): fs.FileInfo
- }
- interface statDirEntry {
-  string(): string
  }
  interface walk {
   /**
@@ -2699,6 +2589,2142 @@ namespace filepath {
    * does not ignore case when required.
    */
   (p: string): boolean
+ }
+}
+
+/**
+ * Package template is a thin wrapper around the standard html/template
+ * and text/template packages that implements a convenient registry to
+ * load and cache templates on the fly concurrently.
+ * 
+ * It was created to assist the JSVM plugin HTML rendering, but could be used in other Go code.
+ * 
+ * Example:
+ * 
+ * ```
+ * 	registry := template.NewRegistry()
+ * 
+ * 	html1, err := registry.LoadFiles(
+ * 		// the files set wil be parsed only once and then cached
+ * 		"layout.html",
+ * 		"content.html",
+ * 	).Render(map[string]any{"name": "John"})
+ * 
+ * 	html2, err := registry.LoadFiles(
+ * 		// reuse the already parsed and cached files set
+ * 		"layout.html",
+ * 		"content.html",
+ * 	).Render(map[string]any{"name": "Jane"})
+ * ```
+ */
+namespace template {
+ interface newRegistry {
+  /**
+   * NewRegistry creates and initializes a new templates registry with
+   * some defaults (eg. global "raw" template function for unescaped HTML).
+   * 
+   * Use the Registry.Load* methods to load templates into the registry.
+   */
+  (): (Registry | undefined)
+ }
+ /**
+  * Registry defines a templates registry that is safe to be used by multiple goroutines.
+  * 
+  * Use the Registry.Load* methods to load templates into the registry.
+  */
+ interface Registry {
+ }
+ interface Registry {
+  /**
+   * AddFuncs registers new global template functions.
+   * 
+   * The key of each map entry is the function name that will be used in the templates.
+   * If a function with the map entry name already exists it will be replaced with the new one.
+   * 
+   * The value of each map entry is a function that must have either a
+   * single return value, or two return values of which the second has type error.
+   * 
+   * Example:
+   * 
+   *  r.AddFuncs(map[string]any{
+   * ```
+   *    "toUpper": func(str string) string {
+   *        return strings.ToUppser(str)
+   *    },
+   *    ...
+   * ```
+   *  })
+   */
+  addFuncs(funcs: _TygojaDict): (Registry | undefined)
+ }
+ interface Registry {
+  /**
+   * LoadFiles caches (if not already) the specified filenames set as a
+   * single template and returns a ready to use Renderer instance.
+   * 
+   * There must be at least 1 filename specified.
+   */
+  loadFiles(...filenames: string[]): (Renderer | undefined)
+ }
+ interface Registry {
+  /**
+   * LoadString caches (if not already) the specified inline string as a
+   * single template and returns a ready to use Renderer instance.
+   */
+  loadString(text: string): (Renderer | undefined)
+ }
+ interface Registry {
+  /**
+   * LoadFS caches (if not already) the specified fs and globPatterns
+   * pair as single template and returns a ready to use Renderer instance.
+   * 
+   * There must be at least 1 file matching the provided globPattern(s)
+   * (note that most file names serves as glob patterns matching themselves).
+   */
+  loadFS(fsys: fs.FS, ...globPatterns: string[]): (Renderer | undefined)
+ }
+ /**
+  * Renderer defines a single parsed template.
+  */
+ interface Renderer {
+ }
+ interface Renderer {
+  /**
+   * Render executes the template with the specified data as the dot object
+   * and returns the result as plain string.
+   */
+  render(data: any): string
+ }
+}
+
+/**
+ * Package dbx provides a set of DB-agnostic and easy-to-use query building methods for relational databases.
+ */
+namespace dbx {
+ /**
+  * Builder supports building SQL statements in a DB-agnostic way.
+  * Builder mainly provides two sets of query building methods: those building SELECT statements
+  * and those manipulating DB data or schema (e.g. INSERT statements, CREATE TABLE statements).
+  */
+ interface Builder {
+  [key:string]: any;
+  /**
+   * NewQuery creates a new Query object with the given SQL statement.
+   * The SQL statement may contain parameter placeholders which can be bound with actual parameter
+   * values before the statement is executed.
+   */
+  newQuery(_arg0: string): (Query | undefined)
+  /**
+   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
+   * The parameters to this method should be the list column names to be selected.
+   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
+   */
+  select(..._arg0: string[]): (SelectQuery | undefined)
+  /**
+   * ModelQuery returns a new ModelQuery object that can be used to perform model insertion, update, and deletion.
+   * The parameter to this method should be a pointer to the model struct that needs to be inserted, updated, or deleted.
+   */
+  model(_arg0: {
+  }): (ModelQuery | undefined)
+  /**
+   * GeneratePlaceholder generates an anonymous parameter placeholder with the given parameter ID.
+   */
+  generatePlaceholder(_arg0: number): string
+  /**
+   * Quote quotes a string so that it can be embedded in a SQL statement as a string value.
+   */
+  quote(_arg0: string): string
+  /**
+   * QuoteSimpleTableName quotes a simple table name.
+   * A simple table name does not contain any schema prefix.
+   */
+  quoteSimpleTableName(_arg0: string): string
+  /**
+   * QuoteSimpleColumnName quotes a simple column name.
+   * A simple column name does not contain any table prefix.
+   */
+  quoteSimpleColumnName(_arg0: string): string
+  /**
+   * QueryBuilder returns the query builder supporting the current DB.
+   */
+  queryBuilder(): QueryBuilder
+  /**
+   * Insert creates a Query that represents an INSERT SQL statement.
+   * The keys of cols are the column names, while the values of cols are the corresponding column
+   * values to be inserted.
+   */
+  insert(table: string, cols: Params): (Query | undefined)
+  /**
+   * Upsert creates a Query that represents an UPSERT SQL statement.
+   * Upsert inserts a row into the table if the primary key or unique index is not found.
+   * Otherwise it will update the row with the new values.
+   * The keys of cols are the column names, while the values of cols are the corresponding column
+   * values to be inserted.
+   */
+  upsert(table: string, cols: Params, ...constraints: string[]): (Query | undefined)
+  /**
+   * Update creates a Query that represents an UPDATE SQL statement.
+   * The keys of cols are the column names, while the values of cols are the corresponding new column
+   * values. If the "where" expression is nil, the UPDATE SQL statement will have no WHERE clause
+   * (be careful in this case as the SQL statement will update ALL rows in the table).
+   */
+  update(table: string, cols: Params, where: Expression): (Query | undefined)
+  /**
+   * Delete creates a Query that represents a DELETE SQL statement.
+   * If the "where" expression is nil, the DELETE SQL statement will have no WHERE clause
+   * (be careful in this case as the SQL statement will delete ALL rows in the table).
+   */
+  delete(table: string, where: Expression): (Query | undefined)
+  /**
+   * CreateTable creates a Query that represents a CREATE TABLE SQL statement.
+   * The keys of cols are the column names, while the values of cols are the corresponding column types.
+   * The optional "options" parameters will be appended to the generated SQL statement.
+   */
+  createTable(table: string, cols: _TygojaDict, ...options: string[]): (Query | undefined)
+  /**
+   * RenameTable creates a Query that can be used to rename a table.
+   */
+  renameTable(oldName: string): (Query | undefined)
+  /**
+   * DropTable creates a Query that can be used to drop a table.
+   */
+  dropTable(table: string): (Query | undefined)
+  /**
+   * TruncateTable creates a Query that can be used to truncate a table.
+   */
+  truncateTable(table: string): (Query | undefined)
+  /**
+   * AddColumn creates a Query that can be used to add a column to a table.
+   */
+  addColumn(table: string): (Query | undefined)
+  /**
+   * DropColumn creates a Query that can be used to drop a column from a table.
+   */
+  dropColumn(table: string): (Query | undefined)
+  /**
+   * RenameColumn creates a Query that can be used to rename a column in a table.
+   */
+  renameColumn(table: string): (Query | undefined)
+  /**
+   * AlterColumn creates a Query that can be used to change the definition of a table column.
+   */
+  alterColumn(table: string): (Query | undefined)
+  /**
+   * AddPrimaryKey creates a Query that can be used to specify primary key(s) for a table.
+   * The "name" parameter specifies the name of the primary key constraint.
+   */
+  addPrimaryKey(table: string, ...cols: string[]): (Query | undefined)
+  /**
+   * DropPrimaryKey creates a Query that can be used to remove the named primary key constraint from a table.
+   */
+  dropPrimaryKey(table: string): (Query | undefined)
+  /**
+   * AddForeignKey creates a Query that can be used to add a foreign key constraint to a table.
+   * The length of cols and refCols must be the same as they refer to the primary and referential columns.
+   * The optional "options" parameters will be appended to the SQL statement. They can be used to
+   * specify options such as "ON DELETE CASCADE".
+   */
+  addForeignKey(table: string, cols: Array<string>, refTable: string, ...options: string[]): (Query | undefined)
+  /**
+   * DropForeignKey creates a Query that can be used to remove the named foreign key constraint from a table.
+   */
+  dropForeignKey(table: string): (Query | undefined)
+  /**
+   * CreateIndex creates a Query that can be used to create an index for a table.
+   */
+  createIndex(table: string, ...cols: string[]): (Query | undefined)
+  /**
+   * CreateUniqueIndex creates a Query that can be used to create a unique index for a table.
+   */
+  createUniqueIndex(table: string, ...cols: string[]): (Query | undefined)
+  /**
+   * DropIndex creates a Query that can be used to remove the named index from a table.
+   */
+  dropIndex(table: string): (Query | undefined)
+ }
+ /**
+  * BaseBuilder provides a basic implementation of the Builder interface.
+  */
+ interface BaseBuilder {
+ }
+ interface newBaseBuilder {
+  /**
+   * NewBaseBuilder creates a new BaseBuilder instance.
+   */
+  (db: DB, executor: Executor): (BaseBuilder | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * DB returns the DB instance that this builder is associated with.
+   */
+  db(): (DB | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * Executor returns the executor object (a DB instance or a transaction) for executing SQL statements.
+   */
+  executor(): Executor
+ }
+ interface BaseBuilder {
+  /**
+   * NewQuery creates a new Query object with the given SQL statement.
+   * The SQL statement may contain parameter placeholders which can be bound with actual parameter
+   * values before the statement is executed.
+   */
+  newQuery(sql: string): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * GeneratePlaceholder generates an anonymous parameter placeholder with the given parameter ID.
+   */
+  generatePlaceholder(_arg0: number): string
+ }
+ interface BaseBuilder {
+  /**
+   * Quote quotes a string so that it can be embedded in a SQL statement as a string value.
+   */
+  quote(s: string): string
+ }
+ interface BaseBuilder {
+  /**
+   * QuoteSimpleTableName quotes a simple table name.
+   * A simple table name does not contain any schema prefix.
+   */
+  quoteSimpleTableName(s: string): string
+ }
+ interface BaseBuilder {
+  /**
+   * QuoteSimpleColumnName quotes a simple column name.
+   * A simple column name does not contain any table prefix.
+   */
+  quoteSimpleColumnName(s: string): string
+ }
+ interface BaseBuilder {
+  /**
+   * Insert creates a Query that represents an INSERT SQL statement.
+   * The keys of cols are the column names, while the values of cols are the corresponding column
+   * values to be inserted.
+   */
+  insert(table: string, cols: Params): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * Upsert creates a Query that represents an UPSERT SQL statement.
+   * Upsert inserts a row into the table if the primary key or unique index is not found.
+   * Otherwise it will update the row with the new values.
+   * The keys of cols are the column names, while the values of cols are the corresponding column
+   * values to be inserted.
+   */
+  upsert(table: string, cols: Params, ...constraints: string[]): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * Update creates a Query that represents an UPDATE SQL statement.
+   * The keys of cols are the column names, while the values of cols are the corresponding new column
+   * values. If the "where" expression is nil, the UPDATE SQL statement will have no WHERE clause
+   * (be careful in this case as the SQL statement will update ALL rows in the table).
+   */
+  update(table: string, cols: Params, where: Expression): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * Delete creates a Query that represents a DELETE SQL statement.
+   * If the "where" expression is nil, the DELETE SQL statement will have no WHERE clause
+   * (be careful in this case as the SQL statement will delete ALL rows in the table).
+   */
+  delete(table: string, where: Expression): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * CreateTable creates a Query that represents a CREATE TABLE SQL statement.
+   * The keys of cols are the column names, while the values of cols are the corresponding column types.
+   * The optional "options" parameters will be appended to the generated SQL statement.
+   */
+  createTable(table: string, cols: _TygojaDict, ...options: string[]): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * RenameTable creates a Query that can be used to rename a table.
+   */
+  renameTable(oldName: string): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * DropTable creates a Query that can be used to drop a table.
+   */
+  dropTable(table: string): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * TruncateTable creates a Query that can be used to truncate a table.
+   */
+  truncateTable(table: string): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * AddColumn creates a Query that can be used to add a column to a table.
+   */
+  addColumn(table: string): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * DropColumn creates a Query that can be used to drop a column from a table.
+   */
+  dropColumn(table: string): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * RenameColumn creates a Query that can be used to rename a column in a table.
+   */
+  renameColumn(table: string): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * AlterColumn creates a Query that can be used to change the definition of a table column.
+   */
+  alterColumn(table: string): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * AddPrimaryKey creates a Query that can be used to specify primary key(s) for a table.
+   * The "name" parameter specifies the name of the primary key constraint.
+   */
+  addPrimaryKey(table: string, ...cols: string[]): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * DropPrimaryKey creates a Query that can be used to remove the named primary key constraint from a table.
+   */
+  dropPrimaryKey(table: string): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * AddForeignKey creates a Query that can be used to add a foreign key constraint to a table.
+   * The length of cols and refCols must be the same as they refer to the primary and referential columns.
+   * The optional "options" parameters will be appended to the SQL statement. They can be used to
+   * specify options such as "ON DELETE CASCADE".
+   */
+  addForeignKey(table: string, cols: Array<string>, refTable: string, ...options: string[]): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * DropForeignKey creates a Query that can be used to remove the named foreign key constraint from a table.
+   */
+  dropForeignKey(table: string): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * CreateIndex creates a Query that can be used to create an index for a table.
+   */
+  createIndex(table: string, ...cols: string[]): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * CreateUniqueIndex creates a Query that can be used to create a unique index for a table.
+   */
+  createUniqueIndex(table: string, ...cols: string[]): (Query | undefined)
+ }
+ interface BaseBuilder {
+  /**
+   * DropIndex creates a Query that can be used to remove the named index from a table.
+   */
+  dropIndex(table: string): (Query | undefined)
+ }
+ /**
+  * MssqlBuilder is the builder for SQL Server databases.
+  */
+ type _subtRHQc = BaseBuilder
+ interface MssqlBuilder extends _subtRHQc {
+ }
+ /**
+  * MssqlQueryBuilder is the query builder for SQL Server databases.
+  */
+ type _subnCEFg = BaseQueryBuilder
+ interface MssqlQueryBuilder extends _subnCEFg {
+ }
+ interface newMssqlBuilder {
+  /**
+   * NewMssqlBuilder creates a new MssqlBuilder instance.
+   */
+  (db: DB, executor: Executor): Builder
+ }
+ interface MssqlBuilder {
+  /**
+   * QueryBuilder returns the query builder supporting the current DB.
+   */
+  queryBuilder(): QueryBuilder
+ }
+ interface MssqlBuilder {
+  /**
+   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
+   * The parameters to this method should be the list column names to be selected.
+   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
+   */
+  select(...cols: string[]): (SelectQuery | undefined)
+ }
+ interface MssqlBuilder {
+  /**
+   * Model returns a new ModelQuery object that can be used to perform model-based DB operations.
+   * The model passed to this method should be a pointer to a model struct.
+   */
+  model(model: {
+   }): (ModelQuery | undefined)
+ }
+ interface MssqlBuilder {
+  /**
+   * QuoteSimpleTableName quotes a simple table name.
+   * A simple table name does not contain any schema prefix.
+   */
+  quoteSimpleTableName(s: string): string
+ }
+ interface MssqlBuilder {
+  /**
+   * QuoteSimpleColumnName quotes a simple column name.
+   * A simple column name does not contain any table prefix.
+   */
+  quoteSimpleColumnName(s: string): string
+ }
+ interface MssqlBuilder {
+  /**
+   * RenameTable creates a Query that can be used to rename a table.
+   */
+  renameTable(oldName: string): (Query | undefined)
+ }
+ interface MssqlBuilder {
+  /**
+   * RenameColumn creates a Query that can be used to rename a column in a table.
+   */
+  renameColumn(table: string): (Query | undefined)
+ }
+ interface MssqlBuilder {
+  /**
+   * AlterColumn creates a Query that can be used to change the definition of a table column.
+   */
+  alterColumn(table: string): (Query | undefined)
+ }
+ interface MssqlQueryBuilder {
+  /**
+   * BuildOrderByAndLimit generates the ORDER BY and LIMIT clauses.
+   */
+  buildOrderByAndLimit(sql: string, cols: Array<string>, limit: number, offset: number): string
+ }
+ /**
+  * MysqlBuilder is the builder for MySQL databases.
+  */
+ type _subZgFQL = BaseBuilder
+ interface MysqlBuilder extends _subZgFQL {
+ }
+ interface newMysqlBuilder {
+  /**
+   * NewMysqlBuilder creates a new MysqlBuilder instance.
+   */
+  (db: DB, executor: Executor): Builder
+ }
+ interface MysqlBuilder {
+  /**
+   * QueryBuilder returns the query builder supporting the current DB.
+   */
+  queryBuilder(): QueryBuilder
+ }
+ interface MysqlBuilder {
+  /**
+   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
+   * The parameters to this method should be the list column names to be selected.
+   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
+   */
+  select(...cols: string[]): (SelectQuery | undefined)
+ }
+ interface MysqlBuilder {
+  /**
+   * Model returns a new ModelQuery object that can be used to perform model-based DB operations.
+   * The model passed to this method should be a pointer to a model struct.
+   */
+  model(model: {
+   }): (ModelQuery | undefined)
+ }
+ interface MysqlBuilder {
+  /**
+   * QuoteSimpleTableName quotes a simple table name.
+   * A simple table name does not contain any schema prefix.
+   */
+  quoteSimpleTableName(s: string): string
+ }
+ interface MysqlBuilder {
+  /**
+   * QuoteSimpleColumnName quotes a simple column name.
+   * A simple column name does not contain any table prefix.
+   */
+  quoteSimpleColumnName(s: string): string
+ }
+ interface MysqlBuilder {
+  /**
+   * Upsert creates a Query that represents an UPSERT SQL statement.
+   * Upsert inserts a row into the table if the primary key or unique index is not found.
+   * Otherwise it will update the row with the new values.
+   * The keys of cols are the column names, while the values of cols are the corresponding column
+   * values to be inserted.
+   */
+  upsert(table: string, cols: Params, ...constraints: string[]): (Query | undefined)
+ }
+ interface MysqlBuilder {
+  /**
+   * RenameColumn creates a Query that can be used to rename a column in a table.
+   */
+  renameColumn(table: string): (Query | undefined)
+ }
+ interface MysqlBuilder {
+  /**
+   * DropPrimaryKey creates a Query that can be used to remove the named primary key constraint from a table.
+   */
+  dropPrimaryKey(table: string): (Query | undefined)
+ }
+ interface MysqlBuilder {
+  /**
+   * DropForeignKey creates a Query that can be used to remove the named foreign key constraint from a table.
+   */
+  dropForeignKey(table: string): (Query | undefined)
+ }
+ /**
+  * OciBuilder is the builder for Oracle databases.
+  */
+ type _subeCWmw = BaseBuilder
+ interface OciBuilder extends _subeCWmw {
+ }
+ /**
+  * OciQueryBuilder is the query builder for Oracle databases.
+  */
+ type _subXhutl = BaseQueryBuilder
+ interface OciQueryBuilder extends _subXhutl {
+ }
+ interface newOciBuilder {
+  /**
+   * NewOciBuilder creates a new OciBuilder instance.
+   */
+  (db: DB, executor: Executor): Builder
+ }
+ interface OciBuilder {
+  /**
+   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
+   * The parameters to this method should be the list column names to be selected.
+   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
+   */
+  select(...cols: string[]): (SelectQuery | undefined)
+ }
+ interface OciBuilder {
+  /**
+   * Model returns a new ModelQuery object that can be used to perform model-based DB operations.
+   * The model passed to this method should be a pointer to a model struct.
+   */
+  model(model: {
+   }): (ModelQuery | undefined)
+ }
+ interface OciBuilder {
+  /**
+   * GeneratePlaceholder generates an anonymous parameter placeholder with the given parameter ID.
+   */
+  generatePlaceholder(i: number): string
+ }
+ interface OciBuilder {
+  /**
+   * QueryBuilder returns the query builder supporting the current DB.
+   */
+  queryBuilder(): QueryBuilder
+ }
+ interface OciBuilder {
+  /**
+   * DropIndex creates a Query that can be used to remove the named index from a table.
+   */
+  dropIndex(table: string): (Query | undefined)
+ }
+ interface OciBuilder {
+  /**
+   * RenameTable creates a Query that can be used to rename a table.
+   */
+  renameTable(oldName: string): (Query | undefined)
+ }
+ interface OciBuilder {
+  /**
+   * AlterColumn creates a Query that can be used to change the definition of a table column.
+   */
+  alterColumn(table: string): (Query | undefined)
+ }
+ interface OciQueryBuilder {
+  /**
+   * BuildOrderByAndLimit generates the ORDER BY and LIMIT clauses.
+   */
+  buildOrderByAndLimit(sql: string, cols: Array<string>, limit: number, offset: number): string
+ }
+ /**
+  * PgsqlBuilder is the builder for PostgreSQL databases.
+  */
+ type _suberHbT = BaseBuilder
+ interface PgsqlBuilder extends _suberHbT {
+ }
+ interface newPgsqlBuilder {
+  /**
+   * NewPgsqlBuilder creates a new PgsqlBuilder instance.
+   */
+  (db: DB, executor: Executor): Builder
+ }
+ interface PgsqlBuilder {
+  /**
+   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
+   * The parameters to this method should be the list column names to be selected.
+   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
+   */
+  select(...cols: string[]): (SelectQuery | undefined)
+ }
+ interface PgsqlBuilder {
+  /**
+   * Model returns a new ModelQuery object that can be used to perform model-based DB operations.
+   * The model passed to this method should be a pointer to a model struct.
+   */
+  model(model: {
+   }): (ModelQuery | undefined)
+ }
+ interface PgsqlBuilder {
+  /**
+   * GeneratePlaceholder generates an anonymous parameter placeholder with the given parameter ID.
+   */
+  generatePlaceholder(i: number): string
+ }
+ interface PgsqlBuilder {
+  /**
+   * QueryBuilder returns the query builder supporting the current DB.
+   */
+  queryBuilder(): QueryBuilder
+ }
+ interface PgsqlBuilder {
+  /**
+   * Upsert creates a Query that represents an UPSERT SQL statement.
+   * Upsert inserts a row into the table if the primary key or unique index is not found.
+   * Otherwise it will update the row with the new values.
+   * The keys of cols are the column names, while the values of cols are the corresponding column
+   * values to be inserted.
+   */
+  upsert(table: string, cols: Params, ...constraints: string[]): (Query | undefined)
+ }
+ interface PgsqlBuilder {
+  /**
+   * DropIndex creates a Query that can be used to remove the named index from a table.
+   */
+  dropIndex(table: string): (Query | undefined)
+ }
+ interface PgsqlBuilder {
+  /**
+   * RenameTable creates a Query that can be used to rename a table.
+   */
+  renameTable(oldName: string): (Query | undefined)
+ }
+ interface PgsqlBuilder {
+  /**
+   * AlterColumn creates a Query that can be used to change the definition of a table column.
+   */
+  alterColumn(table: string): (Query | undefined)
+ }
+ /**
+  * SqliteBuilder is the builder for SQLite databases.
+  */
+ type _subYmybV = BaseBuilder
+ interface SqliteBuilder extends _subYmybV {
+ }
+ interface newSqliteBuilder {
+  /**
+   * NewSqliteBuilder creates a new SqliteBuilder instance.
+   */
+  (db: DB, executor: Executor): Builder
+ }
+ interface SqliteBuilder {
+  /**
+   * QueryBuilder returns the query builder supporting the current DB.
+   */
+  queryBuilder(): QueryBuilder
+ }
+ interface SqliteBuilder {
+  /**
+   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
+   * The parameters to this method should be the list column names to be selected.
+   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
+   */
+  select(...cols: string[]): (SelectQuery | undefined)
+ }
+ interface SqliteBuilder {
+  /**
+   * Model returns a new ModelQuery object that can be used to perform model-based DB operations.
+   * The model passed to this method should be a pointer to a model struct.
+   */
+  model(model: {
+   }): (ModelQuery | undefined)
+ }
+ interface SqliteBuilder {
+  /**
+   * QuoteSimpleTableName quotes a simple table name.
+   * A simple table name does not contain any schema prefix.
+   */
+  quoteSimpleTableName(s: string): string
+ }
+ interface SqliteBuilder {
+  /**
+   * QuoteSimpleColumnName quotes a simple column name.
+   * A simple column name does not contain any table prefix.
+   */
+  quoteSimpleColumnName(s: string): string
+ }
+ interface SqliteBuilder {
+  /**
+   * DropIndex creates a Query that can be used to remove the named index from a table.
+   */
+  dropIndex(table: string): (Query | undefined)
+ }
+ interface SqliteBuilder {
+  /**
+   * TruncateTable creates a Query that can be used to truncate a table.
+   */
+  truncateTable(table: string): (Query | undefined)
+ }
+ interface SqliteBuilder {
+  /**
+   * RenameTable creates a Query that can be used to rename a table.
+   */
+  renameTable(oldName: string): (Query | undefined)
+ }
+ interface SqliteBuilder {
+  /**
+   * AlterColumn creates a Query that can be used to change the definition of a table column.
+   */
+  alterColumn(table: string): (Query | undefined)
+ }
+ interface SqliteBuilder {
+  /**
+   * AddPrimaryKey creates a Query that can be used to specify primary key(s) for a table.
+   * The "name" parameter specifies the name of the primary key constraint.
+   */
+  addPrimaryKey(table: string, ...cols: string[]): (Query | undefined)
+ }
+ interface SqliteBuilder {
+  /**
+   * DropPrimaryKey creates a Query that can be used to remove the named primary key constraint from a table.
+   */
+  dropPrimaryKey(table: string): (Query | undefined)
+ }
+ interface SqliteBuilder {
+  /**
+   * AddForeignKey creates a Query that can be used to add a foreign key constraint to a table.
+   * The length of cols and refCols must be the same as they refer to the primary and referential columns.
+   * The optional "options" parameters will be appended to the SQL statement. They can be used to
+   * specify options such as "ON DELETE CASCADE".
+   */
+  addForeignKey(table: string, cols: Array<string>, refTable: string, ...options: string[]): (Query | undefined)
+ }
+ interface SqliteBuilder {
+  /**
+   * DropForeignKey creates a Query that can be used to remove the named foreign key constraint from a table.
+   */
+  dropForeignKey(table: string): (Query | undefined)
+ }
+ /**
+  * StandardBuilder is the builder that is used by DB for an unknown driver.
+  */
+ type _subORyKz = BaseBuilder
+ interface StandardBuilder extends _subORyKz {
+ }
+ interface newStandardBuilder {
+  /**
+   * NewStandardBuilder creates a new StandardBuilder instance.
+   */
+  (db: DB, executor: Executor): Builder
+ }
+ interface StandardBuilder {
+  /**
+   * QueryBuilder returns the query builder supporting the current DB.
+   */
+  queryBuilder(): QueryBuilder
+ }
+ interface StandardBuilder {
+  /**
+   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
+   * The parameters to this method should be the list column names to be selected.
+   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
+   */
+  select(...cols: string[]): (SelectQuery | undefined)
+ }
+ interface StandardBuilder {
+  /**
+   * Model returns a new ModelQuery object that can be used to perform model-based DB operations.
+   * The model passed to this method should be a pointer to a model struct.
+   */
+  model(model: {
+   }): (ModelQuery | undefined)
+ }
+ /**
+  * LogFunc logs a message for each SQL statement being executed.
+  * This method takes one or multiple parameters. If a single parameter
+  * is provided, it will be treated as the log message. If multiple parameters
+  * are provided, they will be passed to fmt.Sprintf() to generate the log message.
+  */
+ interface LogFunc {(format: string, ...a: {
+  }[]): void }
+ /**
+  * PerfFunc is called when a query finishes execution.
+  * The query execution time is passed to this function so that the DB performance
+  * can be profiled. The "ns" parameter gives the number of nanoseconds that the
+  * SQL statement takes to execute, while the "execute" parameter indicates whether
+  * the SQL statement is executed or queried (usually SELECT statements).
+  */
+ interface PerfFunc {(ns: number, sql: string, execute: boolean): void }
+ /**
+  * QueryLogFunc is called each time when performing a SQL query.
+  * The "t" parameter gives the time that the SQL statement takes to execute,
+  * while rows and err are the result of the query.
+  */
+ interface QueryLogFunc {(ctx: context.Context, t: time.Duration, sql: string, rows: sql.Rows, err: Error): void }
+ /**
+  * ExecLogFunc is called each time when a SQL statement is executed.
+  * The "t" parameter gives the time that the SQL statement takes to execute,
+  * while result and err refer to the result of the execution.
+  */
+ interface ExecLogFunc {(ctx: context.Context, t: time.Duration, sql: string, result: sql.Result, err: Error): void }
+ /**
+  * BuilderFunc creates a Builder instance using the given DB instance and Executor.
+  */
+ interface BuilderFunc {(_arg0: DB, _arg1: Executor): Builder }
+ /**
+  * DB enhances sql.DB by providing a set of DB-agnostic query building methods.
+  * DB allows easier query building and population of data into Go variables.
+  */
+ type _subLRRho = Builder
+ interface DB extends _subLRRho {
+  /**
+   * FieldMapper maps struct fields to DB columns. Defaults to DefaultFieldMapFunc.
+   */
+  fieldMapper: FieldMapFunc
+  /**
+   * TableMapper maps structs to table names. Defaults to GetTableName.
+   */
+  tableMapper: TableMapFunc
+  /**
+   * LogFunc logs the SQL statements being executed. Defaults to nil, meaning no logging.
+   */
+  logFunc: LogFunc
+  /**
+   * PerfFunc logs the SQL execution time. Defaults to nil, meaning no performance profiling.
+   * Deprecated: Please use QueryLogFunc and ExecLogFunc instead.
+   */
+  perfFunc: PerfFunc
+  /**
+   * QueryLogFunc is called each time when performing a SQL query that returns data.
+   */
+  queryLogFunc: QueryLogFunc
+  /**
+   * ExecLogFunc is called each time when a SQL statement is executed.
+   */
+  execLogFunc: ExecLogFunc
+ }
+ /**
+  * Errors represents a list of errors.
+  */
+ interface Errors extends Array<Error>{}
+ interface newFromDB {
+  /**
+   * NewFromDB encapsulates an existing database connection.
+   */
+  (sqlDB: sql.DB, driverName: string): (DB | undefined)
+ }
+ interface open {
+  /**
+   * Open opens a database specified by a driver name and data source name (DSN).
+   * Note that Open does not check if DSN is specified correctly. It doesn't try to establish a DB connection either.
+   * Please refer to sql.Open() for more information.
+   */
+  (driverName: string): (DB | undefined)
+ }
+ interface mustOpen {
+  /**
+   * MustOpen opens a database and establishes a connection to it.
+   * Please refer to sql.Open() and sql.Ping() for more information.
+   */
+  (driverName: string): (DB | undefined)
+ }
+ interface DB {
+  /**
+   * Clone makes a shallow copy of DB.
+   */
+  clone(): (DB | undefined)
+ }
+ interface DB {
+  /**
+   * WithContext returns a new instance of DB associated with the given context.
+   */
+  withContext(ctx: context.Context): (DB | undefined)
+ }
+ interface DB {
+  /**
+   * Context returns the context associated with the DB instance.
+   * It returns nil if no context is associated.
+   */
+  context(): context.Context
+ }
+ interface DB {
+  /**
+   * DB returns the sql.DB instance encapsulated by dbx.DB.
+   */
+  db(): (sql.DB | undefined)
+ }
+ interface DB {
+  /**
+   * Close closes the database, releasing any open resources.
+   * It is rare to Close a DB, as the DB handle is meant to be
+   * long-lived and shared between many goroutines.
+   */
+  close(): void
+ }
+ interface DB {
+  /**
+   * Begin starts a transaction.
+   */
+  begin(): (Tx | undefined)
+ }
+ interface DB {
+  /**
+   * BeginTx starts a transaction with the given context and transaction options.
+   */
+  beginTx(ctx: context.Context, opts: sql.TxOptions): (Tx | undefined)
+ }
+ interface DB {
+  /**
+   * Wrap encapsulates an existing transaction.
+   */
+  wrap(sqlTx: sql.Tx): (Tx | undefined)
+ }
+ interface DB {
+  /**
+   * Transactional starts a transaction and executes the given function.
+   * If the function returns an error, the transaction will be rolled back.
+   * Otherwise, the transaction will be committed.
+   */
+  transactional(f: (_arg0: Tx) => void): void
+ }
+ interface DB {
+  /**
+   * TransactionalContext starts a transaction and executes the given function with the given context and transaction options.
+   * If the function returns an error, the transaction will be rolled back.
+   * Otherwise, the transaction will be committed.
+   */
+  transactionalContext(ctx: context.Context, opts: sql.TxOptions, f: (_arg0: Tx) => void): void
+ }
+ interface DB {
+  /**
+   * DriverName returns the name of the DB driver.
+   */
+  driverName(): string
+ }
+ interface DB {
+  /**
+   * QuoteTableName quotes the given table name appropriately.
+   * If the table name contains DB schema prefix, it will be handled accordingly.
+   * This method will do nothing if the table name is already quoted or if it contains parenthesis.
+   */
+  quoteTableName(s: string): string
+ }
+ interface DB {
+  /**
+   * QuoteColumnName quotes the given column name appropriately.
+   * If the table name contains table name prefix, it will be handled accordingly.
+   * This method will do nothing if the column name is already quoted or if it contains parenthesis.
+   */
+  quoteColumnName(s: string): string
+ }
+ interface Errors {
+  /**
+   * Error returns the error string of Errors.
+   */
+  error(): string
+ }
+ /**
+  * Expression represents a DB expression that can be embedded in a SQL statement.
+  */
+ interface Expression {
+  [key:string]: any;
+  /**
+   * Build converts an expression into a SQL fragment.
+   * If the expression contains binding parameters, they will be added to the given Params.
+   */
+  build(_arg0: DB, _arg1: Params): string
+ }
+ /**
+  * HashExp represents a hash expression.
+  * 
+  * A hash expression is a map whose keys are DB column names which need to be filtered according
+  * to the corresponding values. For example, HashExp{"level": 2, "dept": 10} will generate
+  * the SQL: "level"=2 AND "dept"=10.
+  * 
+  * HashExp also handles nil values and slice values. For example, HashExp{"level": []interface{}{1, 2}, "dept": nil}
+  * will generate: "level" IN (1, 2) AND "dept" IS NULL.
+  */
+ interface HashExp extends _TygojaDict{}
+ interface newExp {
+  /**
+   * NewExp generates an expression with the specified SQL fragment and the optional binding parameters.
+   */
+  (e: string, ...params: Params[]): Expression
+ }
+ interface not {
+  /**
+   * Not generates a NOT expression which prefixes "NOT" to the specified expression.
+   */
+  (e: Expression): Expression
+ }
+ interface and {
+  /**
+   * And generates an AND expression which concatenates the given expressions with "AND".
+   */
+  (...exps: Expression[]): Expression
+ }
+ interface or {
+  /**
+   * Or generates an OR expression which concatenates the given expressions with "OR".
+   */
+  (...exps: Expression[]): Expression
+ }
+ interface _in {
+  /**
+   * In generates an IN expression for the specified column and the list of allowed values.
+   * If values is empty, a SQL "0=1" will be generated which represents a false expression.
+   */
+  (col: string, ...values: {
+   }[]): Expression
+ }
+ interface notIn {
+  /**
+   * NotIn generates an NOT IN expression for the specified column and the list of disallowed values.
+   * If values is empty, an empty string will be returned indicating a true expression.
+   */
+  (col: string, ...values: {
+   }[]): Expression
+ }
+ interface like {
+  /**
+   * Like generates a LIKE expression for the specified column and the possible strings that the column should be like.
+   * If multiple values are present, the column should be like *all* of them. For example, Like("name", "key", "word")
+   * will generate a SQL expression: "name" LIKE "%key%" AND "name" LIKE "%word%".
+   * 
+   * By default, each value will be surrounded by "%" to enable partial matching. If a value contains special characters
+   * such as "%", "\", "_", they will also be properly escaped.
+   * 
+   * You may call Escape() and/or Match() to change the default behavior. For example, Like("name", "key").Match(false, true)
+   * generates "name" LIKE "key%".
+   */
+  (col: string, ...values: string[]): (LikeExp | undefined)
+ }
+ interface notLike {
+  /**
+   * NotLike generates a NOT LIKE expression.
+   * For example, NotLike("name", "key", "word") will generate a SQL expression:
+   * "name" NOT LIKE "%key%" AND "name" NOT LIKE "%word%". Please see Like() for more details.
+   */
+  (col: string, ...values: string[]): (LikeExp | undefined)
+ }
+ interface orLike {
+  /**
+   * OrLike generates an OR LIKE expression.
+   * This is similar to Like() except that the column should be like one of the possible values.
+   * For example, OrLike("name", "key", "word") will generate a SQL expression:
+   * "name" LIKE "%key%" OR "name" LIKE "%word%". Please see Like() for more details.
+   */
+  (col: string, ...values: string[]): (LikeExp | undefined)
+ }
+ interface orNotLike {
+  /**
+   * OrNotLike generates an OR NOT LIKE expression.
+   * For example, OrNotLike("name", "key", "word") will generate a SQL expression:
+   * "name" NOT LIKE "%key%" OR "name" NOT LIKE "%word%". Please see Like() for more details.
+   */
+  (col: string, ...values: string[]): (LikeExp | undefined)
+ }
+ interface exists {
+  /**
+   * Exists generates an EXISTS expression by prefixing "EXISTS" to the given expression.
+   */
+  (exp: Expression): Expression
+ }
+ interface notExists {
+  /**
+   * NotExists generates an EXISTS expression by prefixing "NOT EXISTS" to the given expression.
+   */
+  (exp: Expression): Expression
+ }
+ interface between {
+  /**
+   * Between generates a BETWEEN expression.
+   * For example, Between("age", 10, 30) generates: "age" BETWEEN 10 AND 30
+   */
+  (col: string, from: {
+   }): Expression
+ }
+ interface notBetween {
+  /**
+   * NotBetween generates a NOT BETWEEN expression.
+   * For example, NotBetween("age", 10, 30) generates: "age" NOT BETWEEN 10 AND 30
+   */
+  (col: string, from: {
+   }): Expression
+ }
+ /**
+  * Exp represents an expression with a SQL fragment and a list of optional binding parameters.
+  */
+ interface Exp {
+ }
+ interface Exp {
+  /**
+   * Build converts an expression into a SQL fragment.
+   */
+  build(db: DB, params: Params): string
+ }
+ interface HashExp {
+  /**
+   * Build converts an expression into a SQL fragment.
+   */
+  build(db: DB, params: Params): string
+ }
+ /**
+  * NotExp represents an expression that should prefix "NOT" to a specified expression.
+  */
+ interface NotExp {
+ }
+ interface NotExp {
+  /**
+   * Build converts an expression into a SQL fragment.
+   */
+  build(db: DB, params: Params): string
+ }
+ /**
+  * AndOrExp represents an expression that concatenates multiple expressions using either "AND" or "OR".
+  */
+ interface AndOrExp {
+ }
+ interface AndOrExp {
+  /**
+   * Build converts an expression into a SQL fragment.
+   */
+  build(db: DB, params: Params): string
+ }
+ /**
+  * InExp represents an "IN" or "NOT IN" expression.
+  */
+ interface InExp {
+ }
+ interface InExp {
+  /**
+   * Build converts an expression into a SQL fragment.
+   */
+  build(db: DB, params: Params): string
+ }
+ /**
+  * LikeExp represents a variant of LIKE expressions.
+  */
+ interface LikeExp {
+  /**
+   * Like stores the LIKE operator. It can be "LIKE", "NOT LIKE".
+   * It may also be customized as something like "ILIKE".
+   */
+  like: string
+ }
+ interface LikeExp {
+  /**
+   * Escape specifies how a LIKE expression should be escaped.
+   * Each string at position 2i represents a special character and the string at position 2i+1 is
+   * the corresponding escaped version.
+   */
+  escape(...chars: string[]): (LikeExp | undefined)
+ }
+ interface LikeExp {
+  /**
+   * Match specifies whether to do wildcard matching on the left and/or right of given strings.
+   */
+  match(left: boolean): (LikeExp | undefined)
+ }
+ interface LikeExp {
+  /**
+   * Build converts an expression into a SQL fragment.
+   */
+  build(db: DB, params: Params): string
+ }
+ /**
+  * ExistsExp represents an EXISTS or NOT EXISTS expression.
+  */
+ interface ExistsExp {
+ }
+ interface ExistsExp {
+  /**
+   * Build converts an expression into a SQL fragment.
+   */
+  build(db: DB, params: Params): string
+ }
+ /**
+  * BetweenExp represents a BETWEEN or a NOT BETWEEN expression.
+  */
+ interface BetweenExp {
+ }
+ interface BetweenExp {
+  /**
+   * Build converts an expression into a SQL fragment.
+   */
+  build(db: DB, params: Params): string
+ }
+ interface enclose {
+  /**
+   * Enclose surrounds the provided nonempty expression with parenthesis "()".
+   */
+  (exp: Expression): Expression
+ }
+ /**
+  * EncloseExp represents a parenthesis enclosed expression.
+  */
+ interface EncloseExp {
+ }
+ interface EncloseExp {
+  /**
+   * Build converts an expression into a SQL fragment.
+   */
+  build(db: DB, params: Params): string
+ }
+ /**
+  * TableModel is the interface that should be implemented by models which have unconventional table names.
+  */
+ interface TableModel {
+  [key:string]: any;
+  tableName(): string
+ }
+ /**
+  * ModelQuery represents a query associated with a struct model.
+  */
+ interface ModelQuery {
+ }
+ interface newModelQuery {
+  (model: {
+   }, fieldMapFunc: FieldMapFunc, db: DB, builder: Builder): (ModelQuery | undefined)
+ }
+ interface ModelQuery {
+  /**
+   * Context returns the context associated with the query.
+   */
+  context(): context.Context
+ }
+ interface ModelQuery {
+  /**
+   * WithContext associates a context with the query.
+   */
+  withContext(ctx: context.Context): (ModelQuery | undefined)
+ }
+ interface ModelQuery {
+  /**
+   * Exclude excludes the specified struct fields from being inserted/updated into the DB table.
+   */
+  exclude(...attrs: string[]): (ModelQuery | undefined)
+ }
+ interface ModelQuery {
+  /**
+   * Insert inserts a row in the table using the struct model associated with this query.
+   * 
+   * By default, it inserts *all* public fields into the table, including those nil or empty ones.
+   * You may pass a list of the fields to this method to indicate that only those fields should be inserted.
+   * You may also call Exclude to exclude some fields from being inserted.
+   * 
+   * If a model has an empty primary key, it is considered auto-incremental and the corresponding struct
+   * field will be filled with the generated primary key value after a successful insertion.
+   */
+  insert(...attrs: string[]): void
+ }
+ interface ModelQuery {
+  /**
+   * Update updates a row in the table using the struct model associated with this query.
+   * The row being updated has the same primary key as specified by the model.
+   * 
+   * By default, it updates *all* public fields in the table, including those nil or empty ones.
+   * You may pass a list of the fields to this method to indicate that only those fields should be updated.
+   * You may also call Exclude to exclude some fields from being updated.
+   */
+  update(...attrs: string[]): void
+ }
+ interface ModelQuery {
+  /**
+   * Delete deletes a row in the table using the primary key specified by the struct model associated with this query.
+   */
+  delete(): void
+ }
+ /**
+  * ExecHookFunc executes before op allowing custom handling like auto fail/retry.
+  */
+ interface ExecHookFunc {(q: Query, op: () => void): void }
+ /**
+  * OneHookFunc executes right before the query populate the row result from One() call (aka. op).
+  */
+ interface OneHookFunc {(q: Query, a: {
+  }, op: (b: {
+  }) => void): void }
+ /**
+  * AllHookFunc executes right before the query populate the row result from All() call (aka. op).
+  */
+ interface AllHookFunc {(q: Query, sliceA: {
+  }, op: (sliceB: {
+  }) => void): void }
+ /**
+  * Params represents a list of parameter values to be bound to a SQL statement.
+  * The map keys are the parameter names while the map values are the corresponding parameter values.
+  */
+ interface Params extends _TygojaDict{}
+ /**
+  * Executor prepares, executes, or queries a SQL statement.
+  */
+ interface Executor {
+  [key:string]: any;
+  /**
+   * Exec executes a SQL statement
+   */
+  exec(query: string, ...args: {
+  }[]): sql.Result
+  /**
+   * ExecContext executes a SQL statement with the given context
+   */
+  execContext(ctx: context.Context, query: string, ...args: {
+  }[]): sql.Result
+  /**
+   * Query queries a SQL statement
+   */
+  query(query: string, ...args: {
+  }[]): (sql.Rows | undefined)
+  /**
+   * QueryContext queries a SQL statement with the given context
+   */
+  queryContext(ctx: context.Context, query: string, ...args: {
+  }[]): (sql.Rows | undefined)
+  /**
+   * Prepare creates a prepared statement
+   */
+  prepare(query: string): (sql.Stmt | undefined)
+ }
+ /**
+  * Query represents a SQL statement to be executed.
+  */
+ interface Query {
+  /**
+   * FieldMapper maps struct field names to DB column names.
+   */
+  fieldMapper: FieldMapFunc
+  /**
+   * LastError contains the last error (if any) of the query.
+   * LastError is cleared by Execute(), Row(), Rows(), One(), and All().
+   */
+  lastError: Error
+  /**
+   * LogFunc is used to log the SQL statement being executed.
+   */
+  logFunc: LogFunc
+  /**
+   * PerfFunc is used to log the SQL execution time. It is ignored if nil.
+   * Deprecated: Please use QueryLogFunc and ExecLogFunc instead.
+   */
+  perfFunc: PerfFunc
+  /**
+   * QueryLogFunc is called each time when performing a SQL query that returns data.
+   */
+  queryLogFunc: QueryLogFunc
+  /**
+   * ExecLogFunc is called each time when a SQL statement is executed.
+   */
+  execLogFunc: ExecLogFunc
+ }
+ interface newQuery {
+  /**
+   * NewQuery creates a new Query with the given SQL statement.
+   */
+  (db: DB, executor: Executor, sql: string): (Query | undefined)
+ }
+ interface Query {
+  /**
+   * SQL returns the original SQL used to create the query.
+   * The actual SQL (RawSQL) being executed is obtained by replacing the named
+   * parameter placeholders with anonymous ones.
+   */
+  sql(): string
+ }
+ interface Query {
+  /**
+   * Context returns the context associated with the query.
+   */
+  context(): context.Context
+ }
+ interface Query {
+  /**
+   * WithContext associates a context with the query.
+   */
+  withContext(ctx: context.Context): (Query | undefined)
+ }
+ interface Query {
+  /**
+   * WithExecHook associates the provided exec hook function with the query.
+   * 
+   * It is called for every Query resolver (Execute(), One(), All(), Row(), Column()),
+   * allowing you to implement auto fail/retry or any other additional handling.
+   */
+  withExecHook(fn: ExecHookFunc): (Query | undefined)
+ }
+ interface Query {
+  /**
+   * WithOneHook associates the provided hook function with the query,
+   * called on q.One(), allowing you to implement custom struct scan based
+   * on the One() argument and/or result.
+   */
+  withOneHook(fn: OneHookFunc): (Query | undefined)
+ }
+ interface Query {
+  /**
+   * WithOneHook associates the provided hook function with the query,
+   * called on q.All(), allowing you to implement custom slice scan based
+   * on the All() argument and/or result.
+   */
+  withAllHook(fn: AllHookFunc): (Query | undefined)
+ }
+ interface Query {
+  /**
+   * Params returns the parameters to be bound to the SQL statement represented by this query.
+   */
+  params(): Params
+ }
+ interface Query {
+  /**
+   * Prepare creates a prepared statement for later queries or executions.
+   * Close() should be called after finishing all queries.
+   */
+  prepare(): (Query | undefined)
+ }
+ interface Query {
+  /**
+   * Close closes the underlying prepared statement.
+   * Close does nothing if the query has not been prepared before.
+   */
+  close(): void
+ }
+ interface Query {
+  /**
+   * Bind sets the parameters that should be bound to the SQL statement.
+   * The parameter placeholders in the SQL statement are in the format of "{:ParamName}".
+   */
+  bind(params: Params): (Query | undefined)
+ }
+ interface Query {
+  /**
+   * Execute executes the SQL statement without retrieving data.
+   */
+  execute(): sql.Result
+ }
+ interface Query {
+  /**
+   * One executes the SQL statement and populates the first row of the result into a struct or NullStringMap.
+   * Refer to Rows.ScanStruct() and Rows.ScanMap() for more details on how to specify
+   * the variable to be populated.
+   * Note that when the query has no rows in the result set, an sql.ErrNoRows will be returned.
+   */
+  one(a: {
+   }): void
+ }
+ interface Query {
+  /**
+   * All executes the SQL statement and populates all the resulting rows into a slice of struct or NullStringMap.
+   * The slice must be given as a pointer. Each slice element must be either a struct or a NullStringMap.
+   * Refer to Rows.ScanStruct() and Rows.ScanMap() for more details on how each slice element can be.
+   * If the query returns no row, the slice will be an empty slice (not nil).
+   */
+  all(slice: {
+   }): void
+ }
+ interface Query {
+  /**
+   * Row executes the SQL statement and populates the first row of the result into a list of variables.
+   * Note that the number of the variables should match to that of the columns in the query result.
+   * Note that when the query has no rows in the result set, an sql.ErrNoRows will be returned.
+   */
+  row(...a: {
+   }[]): void
+ }
+ interface Query {
+  /**
+   * Column executes the SQL statement and populates the first column of the result into a slice.
+   * Note that the parameter must be a pointer to a slice.
+   */
+  column(a: {
+   }): void
+ }
+ interface Query {
+  /**
+   * Rows executes the SQL statement and returns a Rows object to allow retrieving data row by row.
+   */
+  rows(): (Rows | undefined)
+ }
+ /**
+  * QueryBuilder builds different clauses for a SELECT SQL statement.
+  */
+ interface QueryBuilder {
+  [key:string]: any;
+  /**
+   * BuildSelect generates a SELECT clause from the given selected column names.
+   */
+  buildSelect(cols: Array<string>, distinct: boolean, option: string): string
+  /**
+   * BuildFrom generates a FROM clause from the given tables.
+   */
+  buildFrom(tables: Array<string>): string
+  /**
+   * BuildGroupBy generates a GROUP BY clause from the given group-by columns.
+   */
+  buildGroupBy(cols: Array<string>): string
+  /**
+   * BuildJoin generates a JOIN clause from the given join information.
+   */
+  buildJoin(_arg0: Array<JoinInfo>, _arg1: Params): string
+  /**
+   * BuildWhere generates a WHERE clause from the given expression.
+   */
+  buildWhere(_arg0: Expression, _arg1: Params): string
+  /**
+   * BuildHaving generates a HAVING clause from the given expression.
+   */
+  buildHaving(_arg0: Expression, _arg1: Params): string
+  /**
+   * BuildOrderByAndLimit generates the ORDER BY and LIMIT clauses.
+   */
+  buildOrderByAndLimit(_arg0: string, _arg1: Array<string>, _arg2: number, _arg3: number): string
+  /**
+   * BuildUnion generates a UNION clause from the given union information.
+   */
+  buildUnion(_arg0: Array<UnionInfo>, _arg1: Params): string
+ }
+ /**
+  * BaseQueryBuilder provides a basic implementation of QueryBuilder.
+  */
+ interface BaseQueryBuilder {
+ }
+ interface newBaseQueryBuilder {
+  /**
+   * NewBaseQueryBuilder creates a new BaseQueryBuilder instance.
+   */
+  (db: DB): (BaseQueryBuilder | undefined)
+ }
+ interface BaseQueryBuilder {
+  /**
+   * DB returns the DB instance associated with the query builder.
+   */
+  db(): (DB | undefined)
+ }
+ interface BaseQueryBuilder {
+  /**
+   * BuildSelect generates a SELECT clause from the given selected column names.
+   */
+  buildSelect(cols: Array<string>, distinct: boolean, option: string): string
+ }
+ interface BaseQueryBuilder {
+  /**
+   * BuildFrom generates a FROM clause from the given tables.
+   */
+  buildFrom(tables: Array<string>): string
+ }
+ interface BaseQueryBuilder {
+  /**
+   * BuildJoin generates a JOIN clause from the given join information.
+   */
+  buildJoin(joins: Array<JoinInfo>, params: Params): string
+ }
+ interface BaseQueryBuilder {
+  /**
+   * BuildWhere generates a WHERE clause from the given expression.
+   */
+  buildWhere(e: Expression, params: Params): string
+ }
+ interface BaseQueryBuilder {
+  /**
+   * BuildHaving generates a HAVING clause from the given expression.
+   */
+  buildHaving(e: Expression, params: Params): string
+ }
+ interface BaseQueryBuilder {
+  /**
+   * BuildGroupBy generates a GROUP BY clause from the given group-by columns.
+   */
+  buildGroupBy(cols: Array<string>): string
+ }
+ interface BaseQueryBuilder {
+  /**
+   * BuildOrderByAndLimit generates the ORDER BY and LIMIT clauses.
+   */
+  buildOrderByAndLimit(sql: string, cols: Array<string>, limit: number, offset: number): string
+ }
+ interface BaseQueryBuilder {
+  /**
+   * BuildUnion generates a UNION clause from the given union information.
+   */
+  buildUnion(unions: Array<UnionInfo>, params: Params): string
+ }
+ interface BaseQueryBuilder {
+  /**
+   * BuildOrderBy generates the ORDER BY clause.
+   */
+  buildOrderBy(cols: Array<string>): string
+ }
+ interface BaseQueryBuilder {
+  /**
+   * BuildLimit generates the LIMIT clause.
+   */
+  buildLimit(limit: number, offset: number): string
+ }
+ /**
+  * VarTypeError indicates a variable type error when trying to populating a variable with DB result.
+  */
+ interface VarTypeError extends String{}
+ interface VarTypeError {
+  /**
+   * Error returns the error message.
+   */
+  error(): string
+ }
+ /**
+  * NullStringMap is a map of sql.NullString that can be used to hold DB query result.
+  * The map keys correspond to the DB column names, while the map values are their corresponding column values.
+  */
+ interface NullStringMap extends _TygojaDict{}
+ /**
+  * Rows enhances sql.Rows by providing additional data query methods.
+  * Rows can be obtained by calling Query.Rows(). It is mainly used to populate data row by row.
+  */
+ type _submdazy = sql.Rows
+ interface Rows extends _submdazy {
+ }
+ interface Rows {
+  /**
+   * ScanMap populates the current row of data into a NullStringMap.
+   * Note that the NullStringMap must not be nil, or it will panic.
+   * The NullStringMap will be populated using column names as keys and their values as
+   * the corresponding element values.
+   */
+  scanMap(a: NullStringMap): void
+ }
+ interface Rows {
+  /**
+   * ScanStruct populates the current row of data into a struct.
+   * The struct must be given as a pointer.
+   * 
+   * ScanStruct associates struct fields with DB table columns through a field mapping function.
+   * It populates a struct field with the data of its associated column.
+   * Note that only exported struct fields will be populated.
+   * 
+   * By default, DefaultFieldMapFunc() is used to map struct fields to table columns.
+   * This function separates each word in a field name with a underscore and turns every letter into lower case.
+   * For example, "LastName" is mapped to "last_name", "MyID" is mapped to "my_id", and so on.
+   * To change the default behavior, set DB.FieldMapper with your custom mapping function.
+   * You may also set Query.FieldMapper to change the behavior for particular queries.
+   */
+  scanStruct(a: {
+   }): void
+ }
+ /**
+  * BuildHookFunc defines a callback function that is executed on Query creation.
+  */
+ interface BuildHookFunc {(q: Query): void }
+ /**
+  * SelectQuery represents a DB-agnostic SELECT query.
+  * It can be built into a DB-specific query by calling the Build() method.
+  */
+ interface SelectQuery {
+  /**
+   * FieldMapper maps struct field names to DB column names.
+   */
+  fieldMapper: FieldMapFunc
+  /**
+   * TableMapper maps structs to DB table names.
+   */
+  tableMapper: TableMapFunc
+ }
+ /**
+  * JoinInfo contains the specification for a JOIN clause.
+  */
+ interface JoinInfo {
+  join: string
+  table: string
+  on: Expression
+ }
+ /**
+  * UnionInfo contains the specification for a UNION clause.
+  */
+ interface UnionInfo {
+  all: boolean
+  query?: Query
+ }
+ interface newSelectQuery {
+  /**
+   * NewSelectQuery creates a new SelectQuery instance.
+   */
+  (builder: Builder, db: DB): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * WithBuildHook runs the provided hook function with the query created on Build().
+   */
+  withBuildHook(fn: BuildHookFunc): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * Context returns the context associated with the query.
+   */
+  context(): context.Context
+ }
+ interface SelectQuery {
+  /**
+   * WithContext associates a context with the query.
+   */
+  withContext(ctx: context.Context): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * Select specifies the columns to be selected.
+   * Column names will be automatically quoted.
+   */
+  select(...cols: string[]): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * AndSelect adds additional columns to be selected.
+   * Column names will be automatically quoted.
+   */
+  andSelect(...cols: string[]): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * Distinct specifies whether to select columns distinctively.
+   * By default, distinct is false.
+   */
+  distinct(v: boolean): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * SelectOption specifies additional option that should be append to "SELECT".
+   */
+  selectOption(option: string): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * From specifies which tables to select from.
+   * Table names will be automatically quoted.
+   */
+  from(...tables: string[]): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * Where specifies the WHERE condition.
+   */
+  where(e: Expression): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * AndWhere concatenates a new WHERE condition with the existing one (if any) using "AND".
+   */
+  andWhere(e: Expression): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * OrWhere concatenates a new WHERE condition with the existing one (if any) using "OR".
+   */
+  orWhere(e: Expression): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * Join specifies a JOIN clause.
+   * The "typ" parameter specifies the JOIN type (e.g. "INNER JOIN", "LEFT JOIN").
+   */
+  join(typ: string, table: string, on: Expression): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * InnerJoin specifies an INNER JOIN clause.
+   * This is a shortcut method for Join.
+   */
+  innerJoin(table: string, on: Expression): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * LeftJoin specifies a LEFT JOIN clause.
+   * This is a shortcut method for Join.
+   */
+  leftJoin(table: string, on: Expression): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * RightJoin specifies a RIGHT JOIN clause.
+   * This is a shortcut method for Join.
+   */
+  rightJoin(table: string, on: Expression): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * OrderBy specifies the ORDER BY clause.
+   * Column names will be properly quoted. A column name can contain "ASC" or "DESC" to indicate its ordering direction.
+   */
+  orderBy(...cols: string[]): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * AndOrderBy appends additional columns to the existing ORDER BY clause.
+   * Column names will be properly quoted. A column name can contain "ASC" or "DESC" to indicate its ordering direction.
+   */
+  andOrderBy(...cols: string[]): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * GroupBy specifies the GROUP BY clause.
+   * Column names will be properly quoted.
+   */
+  groupBy(...cols: string[]): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * AndGroupBy appends additional columns to the existing GROUP BY clause.
+   * Column names will be properly quoted.
+   */
+  andGroupBy(...cols: string[]): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * Having specifies the HAVING clause.
+   */
+  having(e: Expression): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * AndHaving concatenates a new HAVING condition with the existing one (if any) using "AND".
+   */
+  andHaving(e: Expression): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * OrHaving concatenates a new HAVING condition with the existing one (if any) using "OR".
+   */
+  orHaving(e: Expression): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * Union specifies a UNION clause.
+   */
+  union(q: Query): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * UnionAll specifies a UNION ALL clause.
+   */
+  unionAll(q: Query): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * Limit specifies the LIMIT clause.
+   * A negative limit means no limit.
+   */
+  limit(limit: number): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * Offset specifies the OFFSET clause.
+   * A negative offset means no offset.
+   */
+  offset(offset: number): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * Bind specifies the parameter values to be bound to the query.
+   */
+  bind(params: Params): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * AndBind appends additional parameters to be bound to the query.
+   */
+  andBind(params: Params): (SelectQuery | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * Build builds the SELECT query and returns an executable Query object.
+   */
+  build(): (Query | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * One executes the SELECT query and populates the first row of the result into the specified variable.
+   * 
+   * If the query does not specify a "from" clause, the method will try to infer the name of the table
+   * to be selected from by calling getTableName() which will return either the variable type name
+   * or the TableName() method if the variable implements the TableModel interface.
+   * 
+   * Note that when the query has no rows in the result set, an sql.ErrNoRows will be returned.
+   */
+  one(a: {
+   }): void
+ }
+ interface SelectQuery {
+  /**
+   * Model selects the row with the specified primary key and populates the model with the row data.
+   * 
+   * The model variable should be a pointer to a struct. If the query does not specify a "from" clause,
+   * it will use the model struct to determine which table to select data from. It will also use the model
+   * to infer the name of the primary key column. Only simple primary key is supported. For composite primary keys,
+   * please use Where() to specify the filtering condition.
+   */
+  model(pk: {
+   }): void
+ }
+ interface SelectQuery {
+  /**
+   * All executes the SELECT query and populates all rows of the result into a slice.
+   * 
+   * Note that the slice must be passed in as a pointer.
+   * 
+   * If the query does not specify a "from" clause, the method will try to infer the name of the table
+   * to be selected from by calling getTableName() which will return either the type name of the slice elements
+   * or the TableName() method if the slice element implements the TableModel interface.
+   */
+  all(slice: {
+   }): void
+ }
+ interface SelectQuery {
+  /**
+   * Rows builds and executes the SELECT query and returns a Rows object for data retrieval purpose.
+   * This is a shortcut to SelectQuery.Build().Rows()
+   */
+  rows(): (Rows | undefined)
+ }
+ interface SelectQuery {
+  /**
+   * Row builds and executes the SELECT query and populates the first row of the result into the specified variables.
+   * This is a shortcut to SelectQuery.Build().Row()
+   */
+  row(...a: {
+   }[]): void
+ }
+ interface SelectQuery {
+  /**
+   * Column builds and executes the SELECT statement and populates the first column of the result into a slice.
+   * Note that the parameter must be a pointer to a slice.
+   * This is a shortcut to SelectQuery.Build().Column()
+   */
+  column(a: {
+   }): void
+ }
+ /**
+  * QueryInfo represents a debug/info struct with exported SelectQuery fields.
+  */
+ interface QueryInfo {
+  builder: Builder
+  selects: Array<string>
+  distinct: boolean
+  selectOption: string
+  from: Array<string>
+  where: Expression
+  join: Array<JoinInfo>
+  orderBy: Array<string>
+  groupBy: Array<string>
+  having: Expression
+  union: Array<UnionInfo>
+  limit: number
+  offset: number
+  params: Params
+  context: context.Context
+  buildHook: BuildHookFunc
+ }
+ interface SelectQuery {
+  /**
+   * Info exports common SelectQuery fields allowing to inspect the
+   * current select query options.
+   */
+  info(): (QueryInfo | undefined)
+ }
+ /**
+  * FieldMapFunc converts a struct field name into a DB column name.
+  */
+ interface FieldMapFunc {(_arg0: string): string }
+ /**
+  * TableMapFunc converts a sample struct into a DB table name.
+  */
+ interface TableMapFunc {(a: {
+  }): string }
+ interface structInfo {
+ }
+ type _subJbApW = structInfo
+ interface structValue extends _subJbApW {
+ }
+ interface fieldInfo {
+ }
+ interface structInfoMapKey {
+ }
+ /**
+  * PostScanner is an optional interface used by ScanStruct.
+  */
+ interface PostScanner {
+  [key:string]: any;
+  /**
+   * PostScan executes right after the struct has been populated
+   * with the DB values, allowing you to further normalize or validate
+   * the loaded data.
+   */
+  postScan(): void
+ }
+ interface defaultFieldMapFunc {
+  /**
+   * DefaultFieldMapFunc maps a field name to a DB column name.
+   * The mapping rule set by this method is that words in a field name will be separated by underscores
+   * and the name will be turned into lower case. For example, "FirstName" maps to "first_name", and "MyID" becomes "my_id".
+   * See DB.FieldMapper for more details.
+   */
+  (f: string): string
+ }
+ interface getTableName {
+  /**
+   * GetTableName implements the default way of determining the table name corresponding to the given model struct
+   * or slice of structs. To get the actual table name for a model, you should use DB.TableMapFunc() instead.
+   * Do not call this method in a model's TableName() method because it will cause infinite loop.
+   */
+  (a: {
+   }): string
+ }
+ /**
+  * Tx enhances sql.Tx with additional querying methods.
+  */
+ type _subHQmbw = Builder
+ interface Tx extends _subHQmbw {
+ }
+ interface Tx {
+  /**
+   * Commit commits the transaction.
+   */
+  commit(): void
+ }
+ interface Tx {
+  /**
+   * Rollback aborts the transaction.
+   */
+  rollback(): void
+ }
+}
+
+/**
+ * Package validation provides configurable and extensible rules for validating data of various types.
+ */
+namespace ozzo_validation {
+ /**
+  * Error interface represents an validation error
+  */
+ interface Error {
+  [key:string]: any;
+  error(): string
+  code(): string
+  message(): string
+  setMessage(_arg0: string): Error
+  params(): _TygojaDict
+  setParams(_arg0: _TygojaDict): Error
  }
 }
 
@@ -2824,7 +4850,7 @@ namespace exec {
    * quoting yourself and provide the full command line in SysProcAttr.CmdLine,
    * leaving Args empty.
    */
-  (name: string, ...arg: string[]): (Cmd)
+  (name: string, ...arg: string[]): (Cmd | undefined)
  }
 }
 
@@ -2890,7 +4916,7 @@ namespace security {
  }
  interface parseUnverifiedJWT {
   /**
-   * ParseUnverifiedJWT parses JWT and returns its claims
+   * ParseUnverifiedJWT parses JWT token and returns its claims
    * but DOES NOT verify the signature.
    * 
    * It verifies only the exp, iat and nbf claims.
@@ -2899,13 +4925,13 @@ namespace security {
  }
  interface parseJWT {
   /**
-   * ParseJWT verifies and parses JWT and returns its claims.
+   * ParseJWT verifies and parses JWT token and returns its claims.
    */
   (token: string, verificationKey: string): jwt.MapClaims
  }
  interface newJWT {
   /**
-   * NewJWT generates and returns new HS256 signed JWT.
+   * NewJWT generates and returns new HS256 signed JWT token.
    */
   (payload: jwt.MapClaims, signingKey: string, secondsDuration: number): string
  }
@@ -2914,7 +4940,7 @@ namespace security {
    * Deprecated:
    * Consider replacing with NewJWT().
    * 
-   * NewToken is a legacy alias for NewJWT that generates a HS256 signed JWT.
+   * NewToken is a legacy alias for NewJWT that generates a HS256 signed JWT token.
    */
   (payload: jwt.MapClaims, signingKey: string, secondsDuration: number): string
  }
@@ -2974,44 +5000,28 @@ namespace filesystem {
   * The file could be from a local path, multipipart/formdata header, etc.
   */
  interface File {
-  reader: FileReader
   name: string
   originalName: string
   size: number
+  reader: FileReader
  }
  interface newFileFromPath {
   /**
    * NewFileFromPath creates a new File instance from the provided local file path.
    */
-  (path: string): (File)
+  (path: string): (File | undefined)
  }
  interface newFileFromBytes {
   /**
    * NewFileFromBytes creates a new File instance from the provided byte slice.
    */
-  (b: string|Array<number>, name: string): (File)
+  (b: string|Array<number>, name: string): (File | undefined)
  }
  interface newFileFromMultipart {
   /**
-   * NewFileFromMultipart creates a new File from the provided multipart header.
+   * NewFileFromMultipart creates a new File instace from the provided multipart header.
    */
-  (mh: multipart.FileHeader): (File)
- }
- interface newFileFromUrl {
-  /**
-   * NewFileFromUrl creates a new File from the provided url by
-   * downloading the resource and load it as BytesReader.
-   * 
-   * Example
-   * 
-   * ```
-   * 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-   * 	defer cancel()
-   * 
-   * 	file, err := filesystem.NewFileFromUrl(ctx, "https://example.com/image.png")
-   * ```
-   */
-  (ctx: context.Context, url: string): (File)
+  (mh: multipart.FileHeader): (File | undefined)
  }
  /**
   * MultipartReader defines a FileReader from [multipart.FileHeader].
@@ -3049,8 +5059,8 @@ namespace filesystem {
    */
   open(): io.ReadSeekCloser
  }
- type _subbzHdQ = bytes.Reader
- interface bytesReadSeekCloser extends _subbzHdQ {
+ type _subHrJdQ = bytes.Reader
+ interface bytesReadSeekCloser extends _subHrJdQ {
  }
  interface bytesReadSeekCloser {
   /**
@@ -3066,7 +5076,7 @@ namespace filesystem {
    * 
    * NB! Make sure to call `Close()` after you are done working with it.
    */
-  (bucketName: string, region: string, endpoint: string, accessKey: string, secretKey: string, s3ForcePathStyle: boolean): (System)
+  (bucketName: string, region: string, endpoint: string, accessKey: string, secretKey: string, s3ForcePathStyle: boolean): (System | undefined)
  }
  interface newLocal {
   /**
@@ -3074,7 +5084,7 @@ namespace filesystem {
    * 
    * NB! Make sure to call `Close()` after you are done working with it.
    */
-  (dirPath: string): (System)
+  (dirPath: string): (System | undefined)
  }
  interface System {
   /**
@@ -3098,7 +5108,7 @@ namespace filesystem {
   /**
    * Attributes returns the attributes for the file with fileKey path.
    */
-  attributes(fileKey: string): (blob.Attributes)
+  attributes(fileKey: string): (blob.Attributes | undefined)
  }
  interface System {
   /**
@@ -3106,15 +5116,7 @@ namespace filesystem {
    * 
    * NB! Make sure to call `Close()` after you are done working with it.
    */
-  getFile(fileKey: string): (blob.Reader)
- }
- interface System {
-  /**
-   * Copy copies the file stored at srcKey to dstKey.
-   * 
-   * If dstKey file already exists, it is overwritten.
-   */
-  copy(srcKey: string): void
+  getFile(fileKey: string): (blob.Reader | undefined)
  }
  interface System {
   /**
@@ -3179,2037 +5181,6 @@ namespace filesystem {
 }
 
 /**
- * Package validation provides configurable and extensible rules for validating data of various types.
- */
-namespace ozzo_validation {
- /**
-  * Error interface represents an validation error
-  */
- interface Error {
-  [key:string]: any;
-  error(): string
-  code(): string
-  message(): string
-  setMessage(_arg0: string): Error
-  params(): _TygojaDict
-  setParams(_arg0: _TygojaDict): Error
- }
-}
-
-/**
- * Package dbx provides a set of DB-agnostic and easy-to-use query building methods for relational databases.
- */
-namespace dbx {
- /**
-  * Builder supports building SQL statements in a DB-agnostic way.
-  * Builder mainly provides two sets of query building methods: those building SELECT statements
-  * and those manipulating DB data or schema (e.g. INSERT statements, CREATE TABLE statements).
-  */
- interface Builder {
-  [key:string]: any;
-  /**
-   * NewQuery creates a new Query object with the given SQL statement.
-   * The SQL statement may contain parameter placeholders which can be bound with actual parameter
-   * values before the statement is executed.
-   */
-  newQuery(_arg0: string): (Query)
-  /**
-   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
-   * The parameters to this method should be the list column names to be selected.
-   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
-   */
-  select(..._arg0: string[]): (SelectQuery)
-  /**
-   * ModelQuery returns a new ModelQuery object that can be used to perform model insertion, update, and deletion.
-   * The parameter to this method should be a pointer to the model struct that needs to be inserted, updated, or deleted.
-   */
-  model(_arg0: {
-  }): (ModelQuery)
-  /**
-   * GeneratePlaceholder generates an anonymous parameter placeholder with the given parameter ID.
-   */
-  generatePlaceholder(_arg0: number): string
-  /**
-   * Quote quotes a string so that it can be embedded in a SQL statement as a string value.
-   */
-  quote(_arg0: string): string
-  /**
-   * QuoteSimpleTableName quotes a simple table name.
-   * A simple table name does not contain any schema prefix.
-   */
-  quoteSimpleTableName(_arg0: string): string
-  /**
-   * QuoteSimpleColumnName quotes a simple column name.
-   * A simple column name does not contain any table prefix.
-   */
-  quoteSimpleColumnName(_arg0: string): string
-  /**
-   * QueryBuilder returns the query builder supporting the current DB.
-   */
-  queryBuilder(): QueryBuilder
-  /**
-   * Insert creates a Query that represents an INSERT SQL statement.
-   * The keys of cols are the column names, while the values of cols are the corresponding column
-   * values to be inserted.
-   */
-  insert(table: string, cols: Params): (Query)
-  /**
-   * Upsert creates a Query that represents an UPSERT SQL statement.
-   * Upsert inserts a row into the table if the primary key or unique index is not found.
-   * Otherwise it will update the row with the new values.
-   * The keys of cols are the column names, while the values of cols are the corresponding column
-   * values to be inserted.
-   */
-  upsert(table: string, cols: Params, ...constraints: string[]): (Query)
-  /**
-   * Update creates a Query that represents an UPDATE SQL statement.
-   * The keys of cols are the column names, while the values of cols are the corresponding new column
-   * values. If the "where" expression is nil, the UPDATE SQL statement will have no WHERE clause
-   * (be careful in this case as the SQL statement will update ALL rows in the table).
-   */
-  update(table: string, cols: Params, where: Expression): (Query)
-  /**
-   * Delete creates a Query that represents a DELETE SQL statement.
-   * If the "where" expression is nil, the DELETE SQL statement will have no WHERE clause
-   * (be careful in this case as the SQL statement will delete ALL rows in the table).
-   */
-  delete(table: string, where: Expression): (Query)
-  /**
-   * CreateTable creates a Query that represents a CREATE TABLE SQL statement.
-   * The keys of cols are the column names, while the values of cols are the corresponding column types.
-   * The optional "options" parameters will be appended to the generated SQL statement.
-   */
-  createTable(table: string, cols: _TygojaDict, ...options: string[]): (Query)
-  /**
-   * RenameTable creates a Query that can be used to rename a table.
-   */
-  renameTable(oldName: string): (Query)
-  /**
-   * DropTable creates a Query that can be used to drop a table.
-   */
-  dropTable(table: string): (Query)
-  /**
-   * TruncateTable creates a Query that can be used to truncate a table.
-   */
-  truncateTable(table: string): (Query)
-  /**
-   * AddColumn creates a Query that can be used to add a column to a table.
-   */
-  addColumn(table: string): (Query)
-  /**
-   * DropColumn creates a Query that can be used to drop a column from a table.
-   */
-  dropColumn(table: string): (Query)
-  /**
-   * RenameColumn creates a Query that can be used to rename a column in a table.
-   */
-  renameColumn(table: string): (Query)
-  /**
-   * AlterColumn creates a Query that can be used to change the definition of a table column.
-   */
-  alterColumn(table: string): (Query)
-  /**
-   * AddPrimaryKey creates a Query that can be used to specify primary key(s) for a table.
-   * The "name" parameter specifies the name of the primary key constraint.
-   */
-  addPrimaryKey(table: string, ...cols: string[]): (Query)
-  /**
-   * DropPrimaryKey creates a Query that can be used to remove the named primary key constraint from a table.
-   */
-  dropPrimaryKey(table: string): (Query)
-  /**
-   * AddForeignKey creates a Query that can be used to add a foreign key constraint to a table.
-   * The length of cols and refCols must be the same as they refer to the primary and referential columns.
-   * The optional "options" parameters will be appended to the SQL statement. They can be used to
-   * specify options such as "ON DELETE CASCADE".
-   */
-  addForeignKey(table: string, cols: Array<string>, refTable: string, ...options: string[]): (Query)
-  /**
-   * DropForeignKey creates a Query that can be used to remove the named foreign key constraint from a table.
-   */
-  dropForeignKey(table: string): (Query)
-  /**
-   * CreateIndex creates a Query that can be used to create an index for a table.
-   */
-  createIndex(table: string, ...cols: string[]): (Query)
-  /**
-   * CreateUniqueIndex creates a Query that can be used to create a unique index for a table.
-   */
-  createUniqueIndex(table: string, ...cols: string[]): (Query)
-  /**
-   * DropIndex creates a Query that can be used to remove the named index from a table.
-   */
-  dropIndex(table: string): (Query)
- }
- /**
-  * BaseBuilder provides a basic implementation of the Builder interface.
-  */
- interface BaseBuilder {
- }
- interface newBaseBuilder {
-  /**
-   * NewBaseBuilder creates a new BaseBuilder instance.
-   */
-  (db: DB, executor: Executor): (BaseBuilder)
- }
- interface BaseBuilder {
-  /**
-   * DB returns the DB instance that this builder is associated with.
-   */
-  db(): (DB)
- }
- interface BaseBuilder {
-  /**
-   * Executor returns the executor object (a DB instance or a transaction) for executing SQL statements.
-   */
-  executor(): Executor
- }
- interface BaseBuilder {
-  /**
-   * NewQuery creates a new Query object with the given SQL statement.
-   * The SQL statement may contain parameter placeholders which can be bound with actual parameter
-   * values before the statement is executed.
-   */
-  newQuery(sql: string): (Query)
- }
- interface BaseBuilder {
-  /**
-   * GeneratePlaceholder generates an anonymous parameter placeholder with the given parameter ID.
-   */
-  generatePlaceholder(_arg0: number): string
- }
- interface BaseBuilder {
-  /**
-   * Quote quotes a string so that it can be embedded in a SQL statement as a string value.
-   */
-  quote(s: string): string
- }
- interface BaseBuilder {
-  /**
-   * QuoteSimpleTableName quotes a simple table name.
-   * A simple table name does not contain any schema prefix.
-   */
-  quoteSimpleTableName(s: string): string
- }
- interface BaseBuilder {
-  /**
-   * QuoteSimpleColumnName quotes a simple column name.
-   * A simple column name does not contain any table prefix.
-   */
-  quoteSimpleColumnName(s: string): string
- }
- interface BaseBuilder {
-  /**
-   * Insert creates a Query that represents an INSERT SQL statement.
-   * The keys of cols are the column names, while the values of cols are the corresponding column
-   * values to be inserted.
-   */
-  insert(table: string, cols: Params): (Query)
- }
- interface BaseBuilder {
-  /**
-   * Upsert creates a Query that represents an UPSERT SQL statement.
-   * Upsert inserts a row into the table if the primary key or unique index is not found.
-   * Otherwise it will update the row with the new values.
-   * The keys of cols are the column names, while the values of cols are the corresponding column
-   * values to be inserted.
-   */
-  upsert(table: string, cols: Params, ...constraints: string[]): (Query)
- }
- interface BaseBuilder {
-  /**
-   * Update creates a Query that represents an UPDATE SQL statement.
-   * The keys of cols are the column names, while the values of cols are the corresponding new column
-   * values. If the "where" expression is nil, the UPDATE SQL statement will have no WHERE clause
-   * (be careful in this case as the SQL statement will update ALL rows in the table).
-   */
-  update(table: string, cols: Params, where: Expression): (Query)
- }
- interface BaseBuilder {
-  /**
-   * Delete creates a Query that represents a DELETE SQL statement.
-   * If the "where" expression is nil, the DELETE SQL statement will have no WHERE clause
-   * (be careful in this case as the SQL statement will delete ALL rows in the table).
-   */
-  delete(table: string, where: Expression): (Query)
- }
- interface BaseBuilder {
-  /**
-   * CreateTable creates a Query that represents a CREATE TABLE SQL statement.
-   * The keys of cols are the column names, while the values of cols are the corresponding column types.
-   * The optional "options" parameters will be appended to the generated SQL statement.
-   */
-  createTable(table: string, cols: _TygojaDict, ...options: string[]): (Query)
- }
- interface BaseBuilder {
-  /**
-   * RenameTable creates a Query that can be used to rename a table.
-   */
-  renameTable(oldName: string): (Query)
- }
- interface BaseBuilder {
-  /**
-   * DropTable creates a Query that can be used to drop a table.
-   */
-  dropTable(table: string): (Query)
- }
- interface BaseBuilder {
-  /**
-   * TruncateTable creates a Query that can be used to truncate a table.
-   */
-  truncateTable(table: string): (Query)
- }
- interface BaseBuilder {
-  /**
-   * AddColumn creates a Query that can be used to add a column to a table.
-   */
-  addColumn(table: string): (Query)
- }
- interface BaseBuilder {
-  /**
-   * DropColumn creates a Query that can be used to drop a column from a table.
-   */
-  dropColumn(table: string): (Query)
- }
- interface BaseBuilder {
-  /**
-   * RenameColumn creates a Query that can be used to rename a column in a table.
-   */
-  renameColumn(table: string): (Query)
- }
- interface BaseBuilder {
-  /**
-   * AlterColumn creates a Query that can be used to change the definition of a table column.
-   */
-  alterColumn(table: string): (Query)
- }
- interface BaseBuilder {
-  /**
-   * AddPrimaryKey creates a Query that can be used to specify primary key(s) for a table.
-   * The "name" parameter specifies the name of the primary key constraint.
-   */
-  addPrimaryKey(table: string, ...cols: string[]): (Query)
- }
- interface BaseBuilder {
-  /**
-   * DropPrimaryKey creates a Query that can be used to remove the named primary key constraint from a table.
-   */
-  dropPrimaryKey(table: string): (Query)
- }
- interface BaseBuilder {
-  /**
-   * AddForeignKey creates a Query that can be used to add a foreign key constraint to a table.
-   * The length of cols and refCols must be the same as they refer to the primary and referential columns.
-   * The optional "options" parameters will be appended to the SQL statement. They can be used to
-   * specify options such as "ON DELETE CASCADE".
-   */
-  addForeignKey(table: string, cols: Array<string>, refTable: string, ...options: string[]): (Query)
- }
- interface BaseBuilder {
-  /**
-   * DropForeignKey creates a Query that can be used to remove the named foreign key constraint from a table.
-   */
-  dropForeignKey(table: string): (Query)
- }
- interface BaseBuilder {
-  /**
-   * CreateIndex creates a Query that can be used to create an index for a table.
-   */
-  createIndex(table: string, ...cols: string[]): (Query)
- }
- interface BaseBuilder {
-  /**
-   * CreateUniqueIndex creates a Query that can be used to create a unique index for a table.
-   */
-  createUniqueIndex(table: string, ...cols: string[]): (Query)
- }
- interface BaseBuilder {
-  /**
-   * DropIndex creates a Query that can be used to remove the named index from a table.
-   */
-  dropIndex(table: string): (Query)
- }
- /**
-  * MssqlBuilder is the builder for SQL Server databases.
-  */
- type _suboXhpm = BaseBuilder
- interface MssqlBuilder extends _suboXhpm {
- }
- /**
-  * MssqlQueryBuilder is the query builder for SQL Server databases.
-  */
- type _subXYEAj = BaseQueryBuilder
- interface MssqlQueryBuilder extends _subXYEAj {
- }
- interface newMssqlBuilder {
-  /**
-   * NewMssqlBuilder creates a new MssqlBuilder instance.
-   */
-  (db: DB, executor: Executor): Builder
- }
- interface MssqlBuilder {
-  /**
-   * QueryBuilder returns the query builder supporting the current DB.
-   */
-  queryBuilder(): QueryBuilder
- }
- interface MssqlBuilder {
-  /**
-   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
-   * The parameters to this method should be the list column names to be selected.
-   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
-   */
-  select(...cols: string[]): (SelectQuery)
- }
- interface MssqlBuilder {
-  /**
-   * Model returns a new ModelQuery object that can be used to perform model-based DB operations.
-   * The model passed to this method should be a pointer to a model struct.
-   */
-  model(model: {
-   }): (ModelQuery)
- }
- interface MssqlBuilder {
-  /**
-   * QuoteSimpleTableName quotes a simple table name.
-   * A simple table name does not contain any schema prefix.
-   */
-  quoteSimpleTableName(s: string): string
- }
- interface MssqlBuilder {
-  /**
-   * QuoteSimpleColumnName quotes a simple column name.
-   * A simple column name does not contain any table prefix.
-   */
-  quoteSimpleColumnName(s: string): string
- }
- interface MssqlBuilder {
-  /**
-   * RenameTable creates a Query that can be used to rename a table.
-   */
-  renameTable(oldName: string): (Query)
- }
- interface MssqlBuilder {
-  /**
-   * RenameColumn creates a Query that can be used to rename a column in a table.
-   */
-  renameColumn(table: string): (Query)
- }
- interface MssqlBuilder {
-  /**
-   * AlterColumn creates a Query that can be used to change the definition of a table column.
-   */
-  alterColumn(table: string): (Query)
- }
- interface MssqlQueryBuilder {
-  /**
-   * BuildOrderByAndLimit generates the ORDER BY and LIMIT clauses.
-   */
-  buildOrderByAndLimit(sql: string, cols: Array<string>, limit: number, offset: number): string
- }
- /**
-  * MysqlBuilder is the builder for MySQL databases.
-  */
- type _subZDHOn = BaseBuilder
- interface MysqlBuilder extends _subZDHOn {
- }
- interface newMysqlBuilder {
-  /**
-   * NewMysqlBuilder creates a new MysqlBuilder instance.
-   */
-  (db: DB, executor: Executor): Builder
- }
- interface MysqlBuilder {
-  /**
-   * QueryBuilder returns the query builder supporting the current DB.
-   */
-  queryBuilder(): QueryBuilder
- }
- interface MysqlBuilder {
-  /**
-   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
-   * The parameters to this method should be the list column names to be selected.
-   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
-   */
-  select(...cols: string[]): (SelectQuery)
- }
- interface MysqlBuilder {
-  /**
-   * Model returns a new ModelQuery object that can be used to perform model-based DB operations.
-   * The model passed to this method should be a pointer to a model struct.
-   */
-  model(model: {
-   }): (ModelQuery)
- }
- interface MysqlBuilder {
-  /**
-   * QuoteSimpleTableName quotes a simple table name.
-   * A simple table name does not contain any schema prefix.
-   */
-  quoteSimpleTableName(s: string): string
- }
- interface MysqlBuilder {
-  /**
-   * QuoteSimpleColumnName quotes a simple column name.
-   * A simple column name does not contain any table prefix.
-   */
-  quoteSimpleColumnName(s: string): string
- }
- interface MysqlBuilder {
-  /**
-   * Upsert creates a Query that represents an UPSERT SQL statement.
-   * Upsert inserts a row into the table if the primary key or unique index is not found.
-   * Otherwise it will update the row with the new values.
-   * The keys of cols are the column names, while the values of cols are the corresponding column
-   * values to be inserted.
-   */
-  upsert(table: string, cols: Params, ...constraints: string[]): (Query)
- }
- interface MysqlBuilder {
-  /**
-   * RenameColumn creates a Query that can be used to rename a column in a table.
-   */
-  renameColumn(table: string): (Query)
- }
- interface MysqlBuilder {
-  /**
-   * DropPrimaryKey creates a Query that can be used to remove the named primary key constraint from a table.
-   */
-  dropPrimaryKey(table: string): (Query)
- }
- interface MysqlBuilder {
-  /**
-   * DropForeignKey creates a Query that can be used to remove the named foreign key constraint from a table.
-   */
-  dropForeignKey(table: string): (Query)
- }
- /**
-  * OciBuilder is the builder for Oracle databases.
-  */
- type _subDGmTA = BaseBuilder
- interface OciBuilder extends _subDGmTA {
- }
- /**
-  * OciQueryBuilder is the query builder for Oracle databases.
-  */
- type _subLNZwv = BaseQueryBuilder
- interface OciQueryBuilder extends _subLNZwv {
- }
- interface newOciBuilder {
-  /**
-   * NewOciBuilder creates a new OciBuilder instance.
-   */
-  (db: DB, executor: Executor): Builder
- }
- interface OciBuilder {
-  /**
-   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
-   * The parameters to this method should be the list column names to be selected.
-   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
-   */
-  select(...cols: string[]): (SelectQuery)
- }
- interface OciBuilder {
-  /**
-   * Model returns a new ModelQuery object that can be used to perform model-based DB operations.
-   * The model passed to this method should be a pointer to a model struct.
-   */
-  model(model: {
-   }): (ModelQuery)
- }
- interface OciBuilder {
-  /**
-   * GeneratePlaceholder generates an anonymous parameter placeholder with the given parameter ID.
-   */
-  generatePlaceholder(i: number): string
- }
- interface OciBuilder {
-  /**
-   * QueryBuilder returns the query builder supporting the current DB.
-   */
-  queryBuilder(): QueryBuilder
- }
- interface OciBuilder {
-  /**
-   * DropIndex creates a Query that can be used to remove the named index from a table.
-   */
-  dropIndex(table: string): (Query)
- }
- interface OciBuilder {
-  /**
-   * RenameTable creates a Query that can be used to rename a table.
-   */
-  renameTable(oldName: string): (Query)
- }
- interface OciBuilder {
-  /**
-   * AlterColumn creates a Query that can be used to change the definition of a table column.
-   */
-  alterColumn(table: string): (Query)
- }
- interface OciQueryBuilder {
-  /**
-   * BuildOrderByAndLimit generates the ORDER BY and LIMIT clauses.
-   */
-  buildOrderByAndLimit(sql: string, cols: Array<string>, limit: number, offset: number): string
- }
- /**
-  * PgsqlBuilder is the builder for PostgreSQL databases.
-  */
- type _subgWSCj = BaseBuilder
- interface PgsqlBuilder extends _subgWSCj {
- }
- interface newPgsqlBuilder {
-  /**
-   * NewPgsqlBuilder creates a new PgsqlBuilder instance.
-   */
-  (db: DB, executor: Executor): Builder
- }
- interface PgsqlBuilder {
-  /**
-   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
-   * The parameters to this method should be the list column names to be selected.
-   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
-   */
-  select(...cols: string[]): (SelectQuery)
- }
- interface PgsqlBuilder {
-  /**
-   * Model returns a new ModelQuery object that can be used to perform model-based DB operations.
-   * The model passed to this method should be a pointer to a model struct.
-   */
-  model(model: {
-   }): (ModelQuery)
- }
- interface PgsqlBuilder {
-  /**
-   * GeneratePlaceholder generates an anonymous parameter placeholder with the given parameter ID.
-   */
-  generatePlaceholder(i: number): string
- }
- interface PgsqlBuilder {
-  /**
-   * QueryBuilder returns the query builder supporting the current DB.
-   */
-  queryBuilder(): QueryBuilder
- }
- interface PgsqlBuilder {
-  /**
-   * Upsert creates a Query that represents an UPSERT SQL statement.
-   * Upsert inserts a row into the table if the primary key or unique index is not found.
-   * Otherwise it will update the row with the new values.
-   * The keys of cols are the column names, while the values of cols are the corresponding column
-   * values to be inserted.
-   */
-  upsert(table: string, cols: Params, ...constraints: string[]): (Query)
- }
- interface PgsqlBuilder {
-  /**
-   * DropIndex creates a Query that can be used to remove the named index from a table.
-   */
-  dropIndex(table: string): (Query)
- }
- interface PgsqlBuilder {
-  /**
-   * RenameTable creates a Query that can be used to rename a table.
-   */
-  renameTable(oldName: string): (Query)
- }
- interface PgsqlBuilder {
-  /**
-   * AlterColumn creates a Query that can be used to change the definition of a table column.
-   */
-  alterColumn(table: string): (Query)
- }
- /**
-  * SqliteBuilder is the builder for SQLite databases.
-  */
- type _subgNHNo = BaseBuilder
- interface SqliteBuilder extends _subgNHNo {
- }
- interface newSqliteBuilder {
-  /**
-   * NewSqliteBuilder creates a new SqliteBuilder instance.
-   */
-  (db: DB, executor: Executor): Builder
- }
- interface SqliteBuilder {
-  /**
-   * QueryBuilder returns the query builder supporting the current DB.
-   */
-  queryBuilder(): QueryBuilder
- }
- interface SqliteBuilder {
-  /**
-   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
-   * The parameters to this method should be the list column names to be selected.
-   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
-   */
-  select(...cols: string[]): (SelectQuery)
- }
- interface SqliteBuilder {
-  /**
-   * Model returns a new ModelQuery object that can be used to perform model-based DB operations.
-   * The model passed to this method should be a pointer to a model struct.
-   */
-  model(model: {
-   }): (ModelQuery)
- }
- interface SqliteBuilder {
-  /**
-   * QuoteSimpleTableName quotes a simple table name.
-   * A simple table name does not contain any schema prefix.
-   */
-  quoteSimpleTableName(s: string): string
- }
- interface SqliteBuilder {
-  /**
-   * QuoteSimpleColumnName quotes a simple column name.
-   * A simple column name does not contain any table prefix.
-   */
-  quoteSimpleColumnName(s: string): string
- }
- interface SqliteBuilder {
-  /**
-   * DropIndex creates a Query that can be used to remove the named index from a table.
-   */
-  dropIndex(table: string): (Query)
- }
- interface SqliteBuilder {
-  /**
-   * TruncateTable creates a Query that can be used to truncate a table.
-   */
-  truncateTable(table: string): (Query)
- }
- interface SqliteBuilder {
-  /**
-   * RenameTable creates a Query that can be used to rename a table.
-   */
-  renameTable(oldName: string): (Query)
- }
- interface SqliteBuilder {
-  /**
-   * AlterColumn creates a Query that can be used to change the definition of a table column.
-   */
-  alterColumn(table: string): (Query)
- }
- interface SqliteBuilder {
-  /**
-   * AddPrimaryKey creates a Query that can be used to specify primary key(s) for a table.
-   * The "name" parameter specifies the name of the primary key constraint.
-   */
-  addPrimaryKey(table: string, ...cols: string[]): (Query)
- }
- interface SqliteBuilder {
-  /**
-   * DropPrimaryKey creates a Query that can be used to remove the named primary key constraint from a table.
-   */
-  dropPrimaryKey(table: string): (Query)
- }
- interface SqliteBuilder {
-  /**
-   * AddForeignKey creates a Query that can be used to add a foreign key constraint to a table.
-   * The length of cols and refCols must be the same as they refer to the primary and referential columns.
-   * The optional "options" parameters will be appended to the SQL statement. They can be used to
-   * specify options such as "ON DELETE CASCADE".
-   */
-  addForeignKey(table: string, cols: Array<string>, refTable: string, ...options: string[]): (Query)
- }
- interface SqliteBuilder {
-  /**
-   * DropForeignKey creates a Query that can be used to remove the named foreign key constraint from a table.
-   */
-  dropForeignKey(table: string): (Query)
- }
- /**
-  * StandardBuilder is the builder that is used by DB for an unknown driver.
-  */
- type _subHGGHS = BaseBuilder
- interface StandardBuilder extends _subHGGHS {
- }
- interface newStandardBuilder {
-  /**
-   * NewStandardBuilder creates a new StandardBuilder instance.
-   */
-  (db: DB, executor: Executor): Builder
- }
- interface StandardBuilder {
-  /**
-   * QueryBuilder returns the query builder supporting the current DB.
-   */
-  queryBuilder(): QueryBuilder
- }
- interface StandardBuilder {
-  /**
-   * Select returns a new SelectQuery object that can be used to build a SELECT statement.
-   * The parameters to this method should be the list column names to be selected.
-   * A column name may have an optional alias name. For example, Select("id", "my_name AS name").
-   */
-  select(...cols: string[]): (SelectQuery)
- }
- interface StandardBuilder {
-  /**
-   * Model returns a new ModelQuery object that can be used to perform model-based DB operations.
-   * The model passed to this method should be a pointer to a model struct.
-   */
-  model(model: {
-   }): (ModelQuery)
- }
- /**
-  * LogFunc logs a message for each SQL statement being executed.
-  * This method takes one or multiple parameters. If a single parameter
-  * is provided, it will be treated as the log message. If multiple parameters
-  * are provided, they will be passed to fmt.Sprintf() to generate the log message.
-  */
- interface LogFunc {(format: string, ...a: {
-  }[]): void }
- /**
-  * PerfFunc is called when a query finishes execution.
-  * The query execution time is passed to this function so that the DB performance
-  * can be profiled. The "ns" parameter gives the number of nanoseconds that the
-  * SQL statement takes to execute, while the "execute" parameter indicates whether
-  * the SQL statement is executed or queried (usually SELECT statements).
-  */
- interface PerfFunc {(ns: number, sql: string, execute: boolean): void }
- /**
-  * QueryLogFunc is called each time when performing a SQL query.
-  * The "t" parameter gives the time that the SQL statement takes to execute,
-  * while rows and err are the result of the query.
-  */
- interface QueryLogFunc {(ctx: context.Context, t: time.Duration, sql: string, rows: sql.Rows, err: Error): void }
- /**
-  * ExecLogFunc is called each time when a SQL statement is executed.
-  * The "t" parameter gives the time that the SQL statement takes to execute,
-  * while result and err refer to the result of the execution.
-  */
- interface ExecLogFunc {(ctx: context.Context, t: time.Duration, sql: string, result: sql.Result, err: Error): void }
- /**
-  * BuilderFunc creates a Builder instance using the given DB instance and Executor.
-  */
- interface BuilderFunc {(_arg0: DB, _arg1: Executor): Builder }
- /**
-  * DB enhances sql.DB by providing a set of DB-agnostic query building methods.
-  * DB allows easier query building and population of data into Go variables.
-  */
- type _subvOQmF = Builder
- interface DB extends _subvOQmF {
-  /**
-   * FieldMapper maps struct fields to DB columns. Defaults to DefaultFieldMapFunc.
-   */
-  fieldMapper: FieldMapFunc
-  /**
-   * TableMapper maps structs to table names. Defaults to GetTableName.
-   */
-  tableMapper: TableMapFunc
-  /**
-   * LogFunc logs the SQL statements being executed. Defaults to nil, meaning no logging.
-   */
-  logFunc: LogFunc
-  /**
-   * PerfFunc logs the SQL execution time. Defaults to nil, meaning no performance profiling.
-   * Deprecated: Please use QueryLogFunc and ExecLogFunc instead.
-   */
-  perfFunc: PerfFunc
-  /**
-   * QueryLogFunc is called each time when performing a SQL query that returns data.
-   */
-  queryLogFunc: QueryLogFunc
-  /**
-   * ExecLogFunc is called each time when a SQL statement is executed.
-   */
-  execLogFunc: ExecLogFunc
- }
- /**
-  * Errors represents a list of errors.
-  */
- interface Errors extends Array<Error>{}
- interface newFromDB {
-  /**
-   * NewFromDB encapsulates an existing database connection.
-   */
-  (sqlDB: sql.DB, driverName: string): (DB)
- }
- interface open {
-  /**
-   * Open opens a database specified by a driver name and data source name (DSN).
-   * Note that Open does not check if DSN is specified correctly. It doesn't try to establish a DB connection either.
-   * Please refer to sql.Open() for more information.
-   */
-  (driverName: string): (DB)
- }
- interface mustOpen {
-  /**
-   * MustOpen opens a database and establishes a connection to it.
-   * Please refer to sql.Open() and sql.Ping() for more information.
-   */
-  (driverName: string): (DB)
- }
- interface DB {
-  /**
-   * Clone makes a shallow copy of DB.
-   */
-  clone(): (DB)
- }
- interface DB {
-  /**
-   * WithContext returns a new instance of DB associated with the given context.
-   */
-  withContext(ctx: context.Context): (DB)
- }
- interface DB {
-  /**
-   * Context returns the context associated with the DB instance.
-   * It returns nil if no context is associated.
-   */
-  context(): context.Context
- }
- interface DB {
-  /**
-   * DB returns the sql.DB instance encapsulated by dbx.DB.
-   */
-  db(): (sql.DB)
- }
- interface DB {
-  /**
-   * Close closes the database, releasing any open resources.
-   * It is rare to Close a DB, as the DB handle is meant to be
-   * long-lived and shared between many goroutines.
-   */
-  close(): void
- }
- interface DB {
-  /**
-   * Begin starts a transaction.
-   */
-  begin(): (Tx)
- }
- interface DB {
-  /**
-   * BeginTx starts a transaction with the given context and transaction options.
-   */
-  beginTx(ctx: context.Context, opts: sql.TxOptions): (Tx)
- }
- interface DB {
-  /**
-   * Wrap encapsulates an existing transaction.
-   */
-  wrap(sqlTx: sql.Tx): (Tx)
- }
- interface DB {
-  /**
-   * Transactional starts a transaction and executes the given function.
-   * If the function returns an error, the transaction will be rolled back.
-   * Otherwise, the transaction will be committed.
-   */
-  transactional(f: (_arg0: Tx) => void): void
- }
- interface DB {
-  /**
-   * TransactionalContext starts a transaction and executes the given function with the given context and transaction options.
-   * If the function returns an error, the transaction will be rolled back.
-   * Otherwise, the transaction will be committed.
-   */
-  transactionalContext(ctx: context.Context, opts: sql.TxOptions, f: (_arg0: Tx) => void): void
- }
- interface DB {
-  /**
-   * DriverName returns the name of the DB driver.
-   */
-  driverName(): string
- }
- interface DB {
-  /**
-   * QuoteTableName quotes the given table name appropriately.
-   * If the table name contains DB schema prefix, it will be handled accordingly.
-   * This method will do nothing if the table name is already quoted or if it contains parenthesis.
-   */
-  quoteTableName(s: string): string
- }
- interface DB {
-  /**
-   * QuoteColumnName quotes the given column name appropriately.
-   * If the table name contains table name prefix, it will be handled accordingly.
-   * This method will do nothing if the column name is already quoted or if it contains parenthesis.
-   */
-  quoteColumnName(s: string): string
- }
- interface Errors {
-  /**
-   * Error returns the error string of Errors.
-   */
-  error(): string
- }
- /**
-  * Expression represents a DB expression that can be embedded in a SQL statement.
-  */
- interface Expression {
-  [key:string]: any;
-  /**
-   * Build converts an expression into a SQL fragment.
-   * If the expression contains binding parameters, they will be added to the given Params.
-   */
-  build(_arg0: DB, _arg1: Params): string
- }
- /**
-  * HashExp represents a hash expression.
-  * 
-  * A hash expression is a map whose keys are DB column names which need to be filtered according
-  * to the corresponding values. For example, HashExp{"level": 2, "dept": 10} will generate
-  * the SQL: "level"=2 AND "dept"=10.
-  * 
-  * HashExp also handles nil values and slice values. For example, HashExp{"level": []interface{}{1, 2}, "dept": nil}
-  * will generate: "level" IN (1, 2) AND "dept" IS NULL.
-  */
- interface HashExp extends _TygojaDict{}
- interface newExp {
-  /**
-   * NewExp generates an expression with the specified SQL fragment and the optional binding parameters.
-   */
-  (e: string, ...params: Params[]): Expression
- }
- interface not {
-  /**
-   * Not generates a NOT expression which prefixes "NOT" to the specified expression.
-   */
-  (e: Expression): Expression
- }
- interface and {
-  /**
-   * And generates an AND expression which concatenates the given expressions with "AND".
-   */
-  (...exps: Expression[]): Expression
- }
- interface or {
-  /**
-   * Or generates an OR expression which concatenates the given expressions with "OR".
-   */
-  (...exps: Expression[]): Expression
- }
- interface _in {
-  /**
-   * In generates an IN expression for the specified column and the list of allowed values.
-   * If values is empty, a SQL "0=1" will be generated which represents a false expression.
-   */
-  (col: string, ...values: {
-   }[]): Expression
- }
- interface notIn {
-  /**
-   * NotIn generates an NOT IN expression for the specified column and the list of disallowed values.
-   * If values is empty, an empty string will be returned indicating a true expression.
-   */
-  (col: string, ...values: {
-   }[]): Expression
- }
- interface like {
-  /**
-   * Like generates a LIKE expression for the specified column and the possible strings that the column should be like.
-   * If multiple values are present, the column should be like *all* of them. For example, Like("name", "key", "word")
-   * will generate a SQL expression: "name" LIKE "%key%" AND "name" LIKE "%word%".
-   * 
-   * By default, each value will be surrounded by "%" to enable partial matching. If a value contains special characters
-   * such as "%", "\", "_", they will also be properly escaped.
-   * 
-   * You may call Escape() and/or Match() to change the default behavior. For example, Like("name", "key").Match(false, true)
-   * generates "name" LIKE "key%".
-   */
-  (col: string, ...values: string[]): (LikeExp)
- }
- interface notLike {
-  /**
-   * NotLike generates a NOT LIKE expression.
-   * For example, NotLike("name", "key", "word") will generate a SQL expression:
-   * "name" NOT LIKE "%key%" AND "name" NOT LIKE "%word%". Please see Like() for more details.
-   */
-  (col: string, ...values: string[]): (LikeExp)
- }
- interface orLike {
-  /**
-   * OrLike generates an OR LIKE expression.
-   * This is similar to Like() except that the column should be like one of the possible values.
-   * For example, OrLike("name", "key", "word") will generate a SQL expression:
-   * "name" LIKE "%key%" OR "name" LIKE "%word%". Please see Like() for more details.
-   */
-  (col: string, ...values: string[]): (LikeExp)
- }
- interface orNotLike {
-  /**
-   * OrNotLike generates an OR NOT LIKE expression.
-   * For example, OrNotLike("name", "key", "word") will generate a SQL expression:
-   * "name" NOT LIKE "%key%" OR "name" NOT LIKE "%word%". Please see Like() for more details.
-   */
-  (col: string, ...values: string[]): (LikeExp)
- }
- interface exists {
-  /**
-   * Exists generates an EXISTS expression by prefixing "EXISTS" to the given expression.
-   */
-  (exp: Expression): Expression
- }
- interface notExists {
-  /**
-   * NotExists generates an EXISTS expression by prefixing "NOT EXISTS" to the given expression.
-   */
-  (exp: Expression): Expression
- }
- interface between {
-  /**
-   * Between generates a BETWEEN expression.
-   * For example, Between("age", 10, 30) generates: "age" BETWEEN 10 AND 30
-   */
-  (col: string, from: {
-   }): Expression
- }
- interface notBetween {
-  /**
-   * NotBetween generates a NOT BETWEEN expression.
-   * For example, NotBetween("age", 10, 30) generates: "age" NOT BETWEEN 10 AND 30
-   */
-  (col: string, from: {
-   }): Expression
- }
- /**
-  * Exp represents an expression with a SQL fragment and a list of optional binding parameters.
-  */
- interface Exp {
- }
- interface Exp {
-  /**
-   * Build converts an expression into a SQL fragment.
-   */
-  build(db: DB, params: Params): string
- }
- interface HashExp {
-  /**
-   * Build converts an expression into a SQL fragment.
-   */
-  build(db: DB, params: Params): string
- }
- /**
-  * NotExp represents an expression that should prefix "NOT" to a specified expression.
-  */
- interface NotExp {
- }
- interface NotExp {
-  /**
-   * Build converts an expression into a SQL fragment.
-   */
-  build(db: DB, params: Params): string
- }
- /**
-  * AndOrExp represents an expression that concatenates multiple expressions using either "AND" or "OR".
-  */
- interface AndOrExp {
- }
- interface AndOrExp {
-  /**
-   * Build converts an expression into a SQL fragment.
-   */
-  build(db: DB, params: Params): string
- }
- /**
-  * InExp represents an "IN" or "NOT IN" expression.
-  */
- interface InExp {
- }
- interface InExp {
-  /**
-   * Build converts an expression into a SQL fragment.
-   */
-  build(db: DB, params: Params): string
- }
- /**
-  * LikeExp represents a variant of LIKE expressions.
-  */
- interface LikeExp {
-  /**
-   * Like stores the LIKE operator. It can be "LIKE", "NOT LIKE".
-   * It may also be customized as something like "ILIKE".
-   */
-  like: string
- }
- interface LikeExp {
-  /**
-   * Escape specifies how a LIKE expression should be escaped.
-   * Each string at position 2i represents a special character and the string at position 2i+1 is
-   * the corresponding escaped version.
-   */
-  escape(...chars: string[]): (LikeExp)
- }
- interface LikeExp {
-  /**
-   * Match specifies whether to do wildcard matching on the left and/or right of given strings.
-   */
-  match(left: boolean): (LikeExp)
- }
- interface LikeExp {
-  /**
-   * Build converts an expression into a SQL fragment.
-   */
-  build(db: DB, params: Params): string
- }
- /**
-  * ExistsExp represents an EXISTS or NOT EXISTS expression.
-  */
- interface ExistsExp {
- }
- interface ExistsExp {
-  /**
-   * Build converts an expression into a SQL fragment.
-   */
-  build(db: DB, params: Params): string
- }
- /**
-  * BetweenExp represents a BETWEEN or a NOT BETWEEN expression.
-  */
- interface BetweenExp {
- }
- interface BetweenExp {
-  /**
-   * Build converts an expression into a SQL fragment.
-   */
-  build(db: DB, params: Params): string
- }
- interface enclose {
-  /**
-   * Enclose surrounds the provided nonempty expression with parenthesis "()".
-   */
-  (exp: Expression): Expression
- }
- /**
-  * EncloseExp represents a parenthesis enclosed expression.
-  */
- interface EncloseExp {
- }
- interface EncloseExp {
-  /**
-   * Build converts an expression into a SQL fragment.
-   */
-  build(db: DB, params: Params): string
- }
- /**
-  * TableModel is the interface that should be implemented by models which have unconventional table names.
-  */
- interface TableModel {
-  [key:string]: any;
-  tableName(): string
- }
- /**
-  * ModelQuery represents a query associated with a struct model.
-  */
- interface ModelQuery {
- }
- interface newModelQuery {
-  (model: {
-   }, fieldMapFunc: FieldMapFunc, db: DB, builder: Builder): (ModelQuery)
- }
- interface ModelQuery {
-  /**
-   * Context returns the context associated with the query.
-   */
-  context(): context.Context
- }
- interface ModelQuery {
-  /**
-   * WithContext associates a context with the query.
-   */
-  withContext(ctx: context.Context): (ModelQuery)
- }
- interface ModelQuery {
-  /**
-   * Exclude excludes the specified struct fields from being inserted/updated into the DB table.
-   */
-  exclude(...attrs: string[]): (ModelQuery)
- }
- interface ModelQuery {
-  /**
-   * Insert inserts a row in the table using the struct model associated with this query.
-   * 
-   * By default, it inserts *all* public fields into the table, including those nil or empty ones.
-   * You may pass a list of the fields to this method to indicate that only those fields should be inserted.
-   * You may also call Exclude to exclude some fields from being inserted.
-   * 
-   * If a model has an empty primary key, it is considered auto-incremental and the corresponding struct
-   * field will be filled with the generated primary key value after a successful insertion.
-   */
-  insert(...attrs: string[]): void
- }
- interface ModelQuery {
-  /**
-   * Update updates a row in the table using the struct model associated with this query.
-   * The row being updated has the same primary key as specified by the model.
-   * 
-   * By default, it updates *all* public fields in the table, including those nil or empty ones.
-   * You may pass a list of the fields to this method to indicate that only those fields should be updated.
-   * You may also call Exclude to exclude some fields from being updated.
-   */
-  update(...attrs: string[]): void
- }
- interface ModelQuery {
-  /**
-   * Delete deletes a row in the table using the primary key specified by the struct model associated with this query.
-   */
-  delete(): void
- }
- /**
-  * ExecHookFunc executes before op allowing custom handling like auto fail/retry.
-  */
- interface ExecHookFunc {(q: Query, op: () => void): void }
- /**
-  * OneHookFunc executes right before the query populate the row result from One() call (aka. op).
-  */
- interface OneHookFunc {(q: Query, a: {
-  }, op: (b: {
-  }) => void): void }
- /**
-  * AllHookFunc executes right before the query populate the row result from All() call (aka. op).
-  */
- interface AllHookFunc {(q: Query, sliceA: {
-  }, op: (sliceB: {
-  }) => void): void }
- /**
-  * Params represents a list of parameter values to be bound to a SQL statement.
-  * The map keys are the parameter names while the map values are the corresponding parameter values.
-  */
- interface Params extends _TygojaDict{}
- /**
-  * Executor prepares, executes, or queries a SQL statement.
-  */
- interface Executor {
-  [key:string]: any;
-  /**
-   * Exec executes a SQL statement
-   */
-  exec(query: string, ...args: {
-  }[]): sql.Result
-  /**
-   * ExecContext executes a SQL statement with the given context
-   */
-  execContext(ctx: context.Context, query: string, ...args: {
-  }[]): sql.Result
-  /**
-   * Query queries a SQL statement
-   */
-  query(query: string, ...args: {
-  }[]): (sql.Rows)
-  /**
-   * QueryContext queries a SQL statement with the given context
-   */
-  queryContext(ctx: context.Context, query: string, ...args: {
-  }[]): (sql.Rows)
-  /**
-   * Prepare creates a prepared statement
-   */
-  prepare(query: string): (sql.Stmt)
- }
- /**
-  * Query represents a SQL statement to be executed.
-  */
- interface Query {
-  /**
-   * FieldMapper maps struct field names to DB column names.
-   */
-  fieldMapper: FieldMapFunc
-  /**
-   * LastError contains the last error (if any) of the query.
-   * LastError is cleared by Execute(), Row(), Rows(), One(), and All().
-   */
-  lastError: Error
-  /**
-   * LogFunc is used to log the SQL statement being executed.
-   */
-  logFunc: LogFunc
-  /**
-   * PerfFunc is used to log the SQL execution time. It is ignored if nil.
-   * Deprecated: Please use QueryLogFunc and ExecLogFunc instead.
-   */
-  perfFunc: PerfFunc
-  /**
-   * QueryLogFunc is called each time when performing a SQL query that returns data.
-   */
-  queryLogFunc: QueryLogFunc
-  /**
-   * ExecLogFunc is called each time when a SQL statement is executed.
-   */
-  execLogFunc: ExecLogFunc
- }
- interface newQuery {
-  /**
-   * NewQuery creates a new Query with the given SQL statement.
-   */
-  (db: DB, executor: Executor, sql: string): (Query)
- }
- interface Query {
-  /**
-   * SQL returns the original SQL used to create the query.
-   * The actual SQL (RawSQL) being executed is obtained by replacing the named
-   * parameter placeholders with anonymous ones.
-   */
-  sql(): string
- }
- interface Query {
-  /**
-   * Context returns the context associated with the query.
-   */
-  context(): context.Context
- }
- interface Query {
-  /**
-   * WithContext associates a context with the query.
-   */
-  withContext(ctx: context.Context): (Query)
- }
- interface Query {
-  /**
-   * WithExecHook associates the provided exec hook function with the query.
-   * 
-   * It is called for every Query resolver (Execute(), One(), All(), Row(), Column()),
-   * allowing you to implement auto fail/retry or any other additional handling.
-   */
-  withExecHook(fn: ExecHookFunc): (Query)
- }
- interface Query {
-  /**
-   * WithOneHook associates the provided hook function with the query,
-   * called on q.One(), allowing you to implement custom struct scan based
-   * on the One() argument and/or result.
-   */
-  withOneHook(fn: OneHookFunc): (Query)
- }
- interface Query {
-  /**
-   * WithOneHook associates the provided hook function with the query,
-   * called on q.All(), allowing you to implement custom slice scan based
-   * on the All() argument and/or result.
-   */
-  withAllHook(fn: AllHookFunc): (Query)
- }
- interface Query {
-  /**
-   * Params returns the parameters to be bound to the SQL statement represented by this query.
-   */
-  params(): Params
- }
- interface Query {
-  /**
-   * Prepare creates a prepared statement for later queries or executions.
-   * Close() should be called after finishing all queries.
-   */
-  prepare(): (Query)
- }
- interface Query {
-  /**
-   * Close closes the underlying prepared statement.
-   * Close does nothing if the query has not been prepared before.
-   */
-  close(): void
- }
- interface Query {
-  /**
-   * Bind sets the parameters that should be bound to the SQL statement.
-   * The parameter placeholders in the SQL statement are in the format of "{:ParamName}".
-   */
-  bind(params: Params): (Query)
- }
- interface Query {
-  /**
-   * Execute executes the SQL statement without retrieving data.
-   */
-  execute(): sql.Result
- }
- interface Query {
-  /**
-   * One executes the SQL statement and populates the first row of the result into a struct or NullStringMap.
-   * Refer to Rows.ScanStruct() and Rows.ScanMap() for more details on how to specify
-   * the variable to be populated.
-   * Note that when the query has no rows in the result set, an sql.ErrNoRows will be returned.
-   */
-  one(a: {
-   }): void
- }
- interface Query {
-  /**
-   * All executes the SQL statement and populates all the resulting rows into a slice of struct or NullStringMap.
-   * The slice must be given as a pointer. Each slice element must be either a struct or a NullStringMap.
-   * Refer to Rows.ScanStruct() and Rows.ScanMap() for more details on how each slice element can be.
-   * If the query returns no row, the slice will be an empty slice (not nil).
-   */
-  all(slice: {
-   }): void
- }
- interface Query {
-  /**
-   * Row executes the SQL statement and populates the first row of the result into a list of variables.
-   * Note that the number of the variables should match to that of the columns in the query result.
-   * Note that when the query has no rows in the result set, an sql.ErrNoRows will be returned.
-   */
-  row(...a: {
-   }[]): void
- }
- interface Query {
-  /**
-   * Column executes the SQL statement and populates the first column of the result into a slice.
-   * Note that the parameter must be a pointer to a slice.
-   */
-  column(a: {
-   }): void
- }
- interface Query {
-  /**
-   * Rows executes the SQL statement and returns a Rows object to allow retrieving data row by row.
-   */
-  rows(): (Rows)
- }
- /**
-  * QueryBuilder builds different clauses for a SELECT SQL statement.
-  */
- interface QueryBuilder {
-  [key:string]: any;
-  /**
-   * BuildSelect generates a SELECT clause from the given selected column names.
-   */
-  buildSelect(cols: Array<string>, distinct: boolean, option: string): string
-  /**
-   * BuildFrom generates a FROM clause from the given tables.
-   */
-  buildFrom(tables: Array<string>): string
-  /**
-   * BuildGroupBy generates a GROUP BY clause from the given group-by columns.
-   */
-  buildGroupBy(cols: Array<string>): string
-  /**
-   * BuildJoin generates a JOIN clause from the given join information.
-   */
-  buildJoin(_arg0: Array<JoinInfo>, _arg1: Params): string
-  /**
-   * BuildWhere generates a WHERE clause from the given expression.
-   */
-  buildWhere(_arg0: Expression, _arg1: Params): string
-  /**
-   * BuildHaving generates a HAVING clause from the given expression.
-   */
-  buildHaving(_arg0: Expression, _arg1: Params): string
-  /**
-   * BuildOrderByAndLimit generates the ORDER BY and LIMIT clauses.
-   */
-  buildOrderByAndLimit(_arg0: string, _arg1: Array<string>, _arg2: number, _arg3: number): string
-  /**
-   * BuildUnion generates a UNION clause from the given union information.
-   */
-  buildUnion(_arg0: Array<UnionInfo>, _arg1: Params): string
- }
- /**
-  * BaseQueryBuilder provides a basic implementation of QueryBuilder.
-  */
- interface BaseQueryBuilder {
- }
- interface newBaseQueryBuilder {
-  /**
-   * NewBaseQueryBuilder creates a new BaseQueryBuilder instance.
-   */
-  (db: DB): (BaseQueryBuilder)
- }
- interface BaseQueryBuilder {
-  /**
-   * DB returns the DB instance associated with the query builder.
-   */
-  db(): (DB)
- }
- interface BaseQueryBuilder {
-  /**
-   * BuildSelect generates a SELECT clause from the given selected column names.
-   */
-  buildSelect(cols: Array<string>, distinct: boolean, option: string): string
- }
- interface BaseQueryBuilder {
-  /**
-   * BuildFrom generates a FROM clause from the given tables.
-   */
-  buildFrom(tables: Array<string>): string
- }
- interface BaseQueryBuilder {
-  /**
-   * BuildJoin generates a JOIN clause from the given join information.
-   */
-  buildJoin(joins: Array<JoinInfo>, params: Params): string
- }
- interface BaseQueryBuilder {
-  /**
-   * BuildWhere generates a WHERE clause from the given expression.
-   */
-  buildWhere(e: Expression, params: Params): string
- }
- interface BaseQueryBuilder {
-  /**
-   * BuildHaving generates a HAVING clause from the given expression.
-   */
-  buildHaving(e: Expression, params: Params): string
- }
- interface BaseQueryBuilder {
-  /**
-   * BuildGroupBy generates a GROUP BY clause from the given group-by columns.
-   */
-  buildGroupBy(cols: Array<string>): string
- }
- interface BaseQueryBuilder {
-  /**
-   * BuildOrderByAndLimit generates the ORDER BY and LIMIT clauses.
-   */
-  buildOrderByAndLimit(sql: string, cols: Array<string>, limit: number, offset: number): string
- }
- interface BaseQueryBuilder {
-  /**
-   * BuildUnion generates a UNION clause from the given union information.
-   */
-  buildUnion(unions: Array<UnionInfo>, params: Params): string
- }
- interface BaseQueryBuilder {
-  /**
-   * BuildOrderBy generates the ORDER BY clause.
-   */
-  buildOrderBy(cols: Array<string>): string
- }
- interface BaseQueryBuilder {
-  /**
-   * BuildLimit generates the LIMIT clause.
-   */
-  buildLimit(limit: number, offset: number): string
- }
- /**
-  * VarTypeError indicates a variable type error when trying to populating a variable with DB result.
-  */
- interface VarTypeError extends String{}
- interface VarTypeError {
-  /**
-   * Error returns the error message.
-   */
-  error(): string
- }
- /**
-  * NullStringMap is a map of sql.NullString that can be used to hold DB query result.
-  * The map keys correspond to the DB column names, while the map values are their corresponding column values.
-  */
- interface NullStringMap extends _TygojaDict{}
- /**
-  * Rows enhances sql.Rows by providing additional data query methods.
-  * Rows can be obtained by calling Query.Rows(). It is mainly used to populate data row by row.
-  */
- type _subkNIiH = sql.Rows
- interface Rows extends _subkNIiH {
- }
- interface Rows {
-  /**
-   * ScanMap populates the current row of data into a NullStringMap.
-   * Note that the NullStringMap must not be nil, or it will panic.
-   * The NullStringMap will be populated using column names as keys and their values as
-   * the corresponding element values.
-   */
-  scanMap(a: NullStringMap): void
- }
- interface Rows {
-  /**
-   * ScanStruct populates the current row of data into a struct.
-   * The struct must be given as a pointer.
-   * 
-   * ScanStruct associates struct fields with DB table columns through a field mapping function.
-   * It populates a struct field with the data of its associated column.
-   * Note that only exported struct fields will be populated.
-   * 
-   * By default, DefaultFieldMapFunc() is used to map struct fields to table columns.
-   * This function separates each word in a field name with a underscore and turns every letter into lower case.
-   * For example, "LastName" is mapped to "last_name", "MyID" is mapped to "my_id", and so on.
-   * To change the default behavior, set DB.FieldMapper with your custom mapping function.
-   * You may also set Query.FieldMapper to change the behavior for particular queries.
-   */
-  scanStruct(a: {
-   }): void
- }
- /**
-  * BuildHookFunc defines a callback function that is executed on Query creation.
-  */
- interface BuildHookFunc {(q: Query): void }
- /**
-  * SelectQuery represents a DB-agnostic SELECT query.
-  * It can be built into a DB-specific query by calling the Build() method.
-  */
- interface SelectQuery {
-  /**
-   * FieldMapper maps struct field names to DB column names.
-   */
-  fieldMapper: FieldMapFunc
-  /**
-   * TableMapper maps structs to DB table names.
-   */
-  tableMapper: TableMapFunc
- }
- /**
-  * JoinInfo contains the specification for a JOIN clause.
-  */
- interface JoinInfo {
-  join: string
-  table: string
-  on: Expression
- }
- /**
-  * UnionInfo contains the specification for a UNION clause.
-  */
- interface UnionInfo {
-  all: boolean
-  query?: Query
- }
- interface newSelectQuery {
-  /**
-   * NewSelectQuery creates a new SelectQuery instance.
-   */
-  (builder: Builder, db: DB): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * WithBuildHook runs the provided hook function with the query created on Build().
-   */
-  withBuildHook(fn: BuildHookFunc): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * Context returns the context associated with the query.
-   */
-  context(): context.Context
- }
- interface SelectQuery {
-  /**
-   * WithContext associates a context with the query.
-   */
-  withContext(ctx: context.Context): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * Select specifies the columns to be selected.
-   * Column names will be automatically quoted.
-   */
-  select(...cols: string[]): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * AndSelect adds additional columns to be selected.
-   * Column names will be automatically quoted.
-   */
-  andSelect(...cols: string[]): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * Distinct specifies whether to select columns distinctively.
-   * By default, distinct is false.
-   */
-  distinct(v: boolean): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * SelectOption specifies additional option that should be append to "SELECT".
-   */
-  selectOption(option: string): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * From specifies which tables to select from.
-   * Table names will be automatically quoted.
-   */
-  from(...tables: string[]): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * Where specifies the WHERE condition.
-   */
-  where(e: Expression): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * AndWhere concatenates a new WHERE condition with the existing one (if any) using "AND".
-   */
-  andWhere(e: Expression): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * OrWhere concatenates a new WHERE condition with the existing one (if any) using "OR".
-   */
-  orWhere(e: Expression): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * Join specifies a JOIN clause.
-   * The "typ" parameter specifies the JOIN type (e.g. "INNER JOIN", "LEFT JOIN").
-   */
-  join(typ: string, table: string, on: Expression): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * InnerJoin specifies an INNER JOIN clause.
-   * This is a shortcut method for Join.
-   */
-  innerJoin(table: string, on: Expression): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * LeftJoin specifies a LEFT JOIN clause.
-   * This is a shortcut method for Join.
-   */
-  leftJoin(table: string, on: Expression): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * RightJoin specifies a RIGHT JOIN clause.
-   * This is a shortcut method for Join.
-   */
-  rightJoin(table: string, on: Expression): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * OrderBy specifies the ORDER BY clause.
-   * Column names will be properly quoted. A column name can contain "ASC" or "DESC" to indicate its ordering direction.
-   */
-  orderBy(...cols: string[]): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * AndOrderBy appends additional columns to the existing ORDER BY clause.
-   * Column names will be properly quoted. A column name can contain "ASC" or "DESC" to indicate its ordering direction.
-   */
-  andOrderBy(...cols: string[]): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * GroupBy specifies the GROUP BY clause.
-   * Column names will be properly quoted.
-   */
-  groupBy(...cols: string[]): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * AndGroupBy appends additional columns to the existing GROUP BY clause.
-   * Column names will be properly quoted.
-   */
-  andGroupBy(...cols: string[]): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * Having specifies the HAVING clause.
-   */
-  having(e: Expression): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * AndHaving concatenates a new HAVING condition with the existing one (if any) using "AND".
-   */
-  andHaving(e: Expression): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * OrHaving concatenates a new HAVING condition with the existing one (if any) using "OR".
-   */
-  orHaving(e: Expression): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * Union specifies a UNION clause.
-   */
-  union(q: Query): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * UnionAll specifies a UNION ALL clause.
-   */
-  unionAll(q: Query): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * Limit specifies the LIMIT clause.
-   * A negative limit means no limit.
-   */
-  limit(limit: number): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * Offset specifies the OFFSET clause.
-   * A negative offset means no offset.
-   */
-  offset(offset: number): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * Bind specifies the parameter values to be bound to the query.
-   */
-  bind(params: Params): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * AndBind appends additional parameters to be bound to the query.
-   */
-  andBind(params: Params): (SelectQuery)
- }
- interface SelectQuery {
-  /**
-   * Build builds the SELECT query and returns an executable Query object.
-   */
-  build(): (Query)
- }
- interface SelectQuery {
-  /**
-   * One executes the SELECT query and populates the first row of the result into the specified variable.
-   * 
-   * If the query does not specify a "from" clause, the method will try to infer the name of the table
-   * to be selected from by calling getTableName() which will return either the variable type name
-   * or the TableName() method if the variable implements the TableModel interface.
-   * 
-   * Note that when the query has no rows in the result set, an sql.ErrNoRows will be returned.
-   */
-  one(a: {
-   }): void
- }
- interface SelectQuery {
-  /**
-   * Model selects the row with the specified primary key and populates the model with the row data.
-   * 
-   * The model variable should be a pointer to a struct. If the query does not specify a "from" clause,
-   * it will use the model struct to determine which table to select data from. It will also use the model
-   * to infer the name of the primary key column. Only simple primary key is supported. For composite primary keys,
-   * please use Where() to specify the filtering condition.
-   */
-  model(pk: {
-   }): void
- }
- interface SelectQuery {
-  /**
-   * All executes the SELECT query and populates all rows of the result into a slice.
-   * 
-   * Note that the slice must be passed in as a pointer.
-   * 
-   * If the query does not specify a "from" clause, the method will try to infer the name of the table
-   * to be selected from by calling getTableName() which will return either the type name of the slice elements
-   * or the TableName() method if the slice element implements the TableModel interface.
-   */
-  all(slice: {
-   }): void
- }
- interface SelectQuery {
-  /**
-   * Rows builds and executes the SELECT query and returns a Rows object for data retrieval purpose.
-   * This is a shortcut to SelectQuery.Build().Rows()
-   */
-  rows(): (Rows)
- }
- interface SelectQuery {
-  /**
-   * Row builds and executes the SELECT query and populates the first row of the result into the specified variables.
-   * This is a shortcut to SelectQuery.Build().Row()
-   */
-  row(...a: {
-   }[]): void
- }
- interface SelectQuery {
-  /**
-   * Column builds and executes the SELECT statement and populates the first column of the result into a slice.
-   * Note that the parameter must be a pointer to a slice.
-   * This is a shortcut to SelectQuery.Build().Column()
-   */
-  column(a: {
-   }): void
- }
- /**
-  * QueryInfo represents a debug/info struct with exported SelectQuery fields.
-  */
- interface QueryInfo {
-  builder: Builder
-  selects: Array<string>
-  distinct: boolean
-  selectOption: string
-  from: Array<string>
-  where: Expression
-  join: Array<JoinInfo>
-  orderBy: Array<string>
-  groupBy: Array<string>
-  having: Expression
-  union: Array<UnionInfo>
-  limit: number
-  offset: number
-  params: Params
-  context: context.Context
-  buildHook: BuildHookFunc
- }
- interface SelectQuery {
-  /**
-   * Info exports common SelectQuery fields allowing to inspect the
-   * current select query options.
-   */
-  info(): (QueryInfo)
- }
- /**
-  * FieldMapFunc converts a struct field name into a DB column name.
-  */
- interface FieldMapFunc {(_arg0: string): string }
- /**
-  * TableMapFunc converts a sample struct into a DB table name.
-  */
- interface TableMapFunc {(a: {
-  }): string }
- interface structInfo {
- }
- type _subTgBSn = structInfo
- interface structValue extends _subTgBSn {
- }
- interface fieldInfo {
- }
- interface structInfoMapKey {
- }
- /**
-  * PostScanner is an optional interface used by ScanStruct.
-  */
- interface PostScanner {
-  [key:string]: any;
-  /**
-   * PostScan executes right after the struct has been populated
-   * with the DB values, allowing you to further normalize or validate
-   * the loaded data.
-   */
-  postScan(): void
- }
- interface defaultFieldMapFunc {
-  /**
-   * DefaultFieldMapFunc maps a field name to a DB column name.
-   * The mapping rule set by this method is that words in a field name will be separated by underscores
-   * and the name will be turned into lower case. For example, "FirstName" maps to "first_name", and "MyID" becomes "my_id".
-   * See DB.FieldMapper for more details.
-   */
-  (f: string): string
- }
- interface getTableName {
-  /**
-   * GetTableName implements the default way of determining the table name corresponding to the given model struct
-   * or slice of structs. To get the actual table name for a model, you should use DB.TableMapFunc() instead.
-   * Do not call this method in a model's TableName() method because it will cause infinite loop.
-   */
-  (a: {
-   }): string
- }
- /**
-  * Tx enhances sql.Tx with additional querying methods.
-  */
- type _subrMIrj = Builder
- interface Tx extends _subrMIrj {
- }
- interface Tx {
-  /**
-   * Commit commits the transaction.
-   */
-  commit(): void
- }
- interface Tx {
-  /**
-   * Rollback aborts the transaction.
-   */
-  rollback(): void
- }
-}
-
-/**
  * Package tokens implements various user and admin tokens generation methods.
  */
 namespace tokens {
@@ -5264,37 +5235,6 @@ namespace tokens {
 }
 
 /**
- * Package mails implements various helper methods for sending user and admin
- * emails like forgotten password, verification, etc.
- */
-namespace mails {
- interface sendAdminPasswordReset {
-  /**
-   * SendAdminPasswordReset sends a password reset request email to the specified admin.
-   */
-  (app: CoreApp, admin: models.Admin): void
- }
- interface sendRecordPasswordReset {
-  /**
-   * SendRecordPasswordReset sends a password reset request email to the specified user.
-   */
-  (app: CoreApp, authRecord: models.Record): void
- }
- interface sendRecordVerification {
-  /**
-   * SendRecordVerification sends a verification request email to the specified user.
-   */
-  (app: CoreApp, authRecord: models.Record): void
- }
- interface sendRecordChangeEmail {
-  /**
-   * SendUserChangeEmail sends a change email confirmation email to the specified user.
-   */
-  (app: CoreApp, record: models.Record, newEmail: string): void
- }
-}
-
-/**
  * Package models implements various services used for request data
  * validation and applying changes to existing DB models through the app Dao.
  */
@@ -5316,7 +5256,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp): (AdminLogin)
+  (app: CoreApp): (AdminLogin | undefined)
  }
  interface AdminLogin {
   /**
@@ -5338,7 +5278,7 @@ namespace forms {
    * You can optionally provide a list of InterceptorFunc to
    * further modify the form behavior before persisting it.
    */
-  submit(...interceptors: InterceptorFunc<models.Admin | undefined>[]): (models.Admin)
+  submit(...interceptors: InterceptorFunc<models.Admin | undefined>[]): (models.Admin | undefined)
  }
  /**
   * AdminPasswordResetConfirm is an admin password reset confirmation form.
@@ -5356,7 +5296,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp): (AdminPasswordResetConfirm)
+  (app: CoreApp): (AdminPasswordResetConfirm | undefined)
  }
  interface AdminPasswordResetConfirm {
   /**
@@ -5381,7 +5321,7 @@ namespace forms {
    * You can optionally provide a list of InterceptorFunc to further
    * modify the form behavior before persisting it.
    */
-  submit(...interceptors: InterceptorFunc<models.Admin | undefined>[]): (models.Admin)
+  submit(...interceptors: InterceptorFunc<models.Admin | undefined>[]): (models.Admin | undefined)
  }
  /**
   * AdminPasswordResetRequest is an admin password reset request form.
@@ -5397,7 +5337,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp): (AdminPasswordResetRequest)
+  (app: CoreApp): (AdminPasswordResetRequest | undefined)
  }
  interface AdminPasswordResetRequest {
   /**
@@ -5442,7 +5382,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp, admin: models.Admin): (AdminUpsert)
+  (app: CoreApp, admin: models.Admin): (AdminUpsert | undefined)
  }
  interface AdminUpsert {
   /**
@@ -5466,7 +5406,7 @@ namespace forms {
   submit(...interceptors: InterceptorFunc<models.Admin | undefined>[]): void
  }
  /**
-  * AppleClientSecretCreate is a form struct to generate a new Apple Client Secret.
+  * AppleClientSecretCreate is a [models.Admin] upsert (create/update) form.
   * 
   * Reference: https://developer.apple.com/documentation/sign_in_with_apple/generate_and_validate_tokens
   */
@@ -5491,7 +5431,7 @@ namespace forms {
    */
   privateKey: string
   /**
-   * Duration specifies how long the generated JWT should be considered valid.
+   * Duration specifies how long the generated JWT token should be considered valid.
    * The specified value must be in seconds and max 15777000 (~6months).
    */
   duration: number
@@ -5501,7 +5441,7 @@ namespace forms {
    * NewAppleClientSecretCreate creates a new [AppleClientSecretCreate] form with initializer
    * config created from the provided [CoreApp] instances.
    */
-  (app: CoreApp): (AppleClientSecretCreate)
+  (app: CoreApp): (AppleClientSecretCreate | undefined)
  }
  interface AppleClientSecretCreate {
   /**
@@ -5525,7 +5465,7 @@ namespace forms {
   /**
    * NewBackupCreate creates new BackupCreate request form.
    */
-  (app: CoreApp): (BackupCreate)
+  (app: CoreApp): (BackupCreate | undefined)
  }
  interface BackupCreate {
   /**
@@ -5558,7 +5498,7 @@ namespace forms {
   /**
    * NewBackupUpload creates new BackupUpload request form.
    */
-  (app: CoreApp): (BackupUpload)
+  (app: CoreApp): (BackupUpload | undefined)
  }
  interface BackupUpload {
   /**
@@ -5617,7 +5557,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp, collection: models.Collection): (CollectionUpsert)
+  (app: CoreApp, collection: models.Collection): (CollectionUpsert | undefined)
  }
  interface CollectionUpsert {
   /**
@@ -5658,7 +5598,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp): (CollectionsImport)
+  (app: CoreApp): (CollectionsImport | undefined)
  }
  interface CollectionsImport {
   /**
@@ -5699,7 +5639,7 @@ namespace forms {
   /**
    * NewRealtimeSubscribe creates new RealtimeSubscribe request form.
    */
-  (): (RealtimeSubscribe)
+  (): (RealtimeSubscribe | undefined)
  }
  interface RealtimeSubscribe {
   /**
@@ -5722,7 +5662,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp, collection: models.Collection): (RecordEmailChangeConfirm)
+  (app: CoreApp, collection: models.Collection): (RecordEmailChangeConfirm | undefined)
  }
  interface RecordEmailChangeConfirm {
   /**
@@ -5744,7 +5684,7 @@ namespace forms {
    * You can optionally provide a list of InterceptorFunc to
    * further modify the form behavior before persisting it.
    */
-  submit(...interceptors: InterceptorFunc<models.Record | undefined>[]): (models.Record)
+  submit(...interceptors: InterceptorFunc<models.Record | undefined>[]): (models.Record | undefined)
  }
  /**
   * RecordEmailChangeRequest is an auth record email change request form.
@@ -5760,7 +5700,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp, record: models.Record): (RecordEmailChangeRequest)
+  (app: CoreApp, record: models.Record): (RecordEmailChangeRequest | undefined)
  }
  interface RecordEmailChangeRequest {
   /**
@@ -5810,7 +5750,7 @@ namespace forms {
    */
   code: string
   /**
-   * The optional PKCE code verifier as part of the code_challenge sent with the initial request.
+   * The code verifier sent with the initial request as part of the code_challenge.
    */
   codeVerifier: string
   /**
@@ -5831,7 +5771,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp, collection: models.Collection, optAuthRecord: models.Record): (RecordOAuth2Login)
+  (app: CoreApp, collection: models.Collection, optAuthRecord: models.Record): (RecordOAuth2Login | undefined)
  }
  interface RecordOAuth2Login {
   /**
@@ -5864,7 +5804,7 @@ namespace forms {
    * 
    * On success returns the authorized record model and the fetched provider's data.
    */
-  submit(...interceptors: InterceptorFunc<RecordOAuth2LoginData | undefined>[]): [(models.Record), (auth.AuthUser)]
+  submit(...interceptors: InterceptorFunc<RecordOAuth2LoginData | undefined>[]): [(models.Record | undefined), (auth.AuthUser | undefined)]
  }
  /**
   * RecordPasswordLogin is record username/email + password login form.
@@ -5881,7 +5821,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp, collection: models.Collection): (RecordPasswordLogin)
+  (app: CoreApp, collection: models.Collection): (RecordPasswordLogin | undefined)
  }
  interface RecordPasswordLogin {
   /**
@@ -5903,7 +5843,7 @@ namespace forms {
    * You can optionally provide a list of InterceptorFunc to
    * further modify the form behavior before persisting it.
    */
-  submit(...interceptors: InterceptorFunc<models.Record | undefined>[]): (models.Record)
+  submit(...interceptors: InterceptorFunc<models.Record | undefined>[]): (models.Record | undefined)
  }
  /**
   * RecordPasswordResetConfirm is an auth record password reset confirmation form.
@@ -5921,7 +5861,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp, collection: models.Collection): (RecordPasswordResetConfirm)
+  (app: CoreApp, collection: models.Collection): (RecordPasswordResetConfirm | undefined)
  }
  interface RecordPasswordResetConfirm {
   /**
@@ -5943,7 +5883,7 @@ namespace forms {
    * You can optionally provide a list of InterceptorFunc to further
    * modify the form behavior before persisting it.
    */
-  submit(...interceptors: InterceptorFunc<models.Record | undefined>[]): (models.Record)
+  submit(...interceptors: InterceptorFunc<models.Record | undefined>[]): (models.Record | undefined)
  }
  /**
   * RecordPasswordResetRequest is an auth record reset password request form.
@@ -5959,7 +5899,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp, collection: models.Collection): (RecordPasswordResetRequest)
+  (app: CoreApp, collection: models.Collection): (RecordPasswordResetRequest | undefined)
  }
  interface RecordPasswordResetRequest {
   /**
@@ -6014,7 +5954,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp, record: models.Record): (RecordUpsert)
+  (app: CoreApp, record: models.Record): (RecordUpsert | undefined)
  }
  interface RecordUpsert {
   /**
@@ -6144,7 +6084,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp, collection: models.Collection): (RecordVerificationConfirm)
+  (app: CoreApp, collection: models.Collection): (RecordVerificationConfirm | undefined)
  }
  interface RecordVerificationConfirm {
   /**
@@ -6166,7 +6106,7 @@ namespace forms {
    * You can optionally provide a list of InterceptorFunc to further
    * modify the form behavior before persisting it.
    */
-  submit(...interceptors: InterceptorFunc<models.Record | undefined>[]): (models.Record)
+  submit(...interceptors: InterceptorFunc<models.Record | undefined>[]): (models.Record | undefined)
  }
  /**
   * RecordVerificationRequest is an auth record email verification request form.
@@ -6182,7 +6122,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp, collection: models.Collection): (RecordVerificationRequest)
+  (app: CoreApp, collection: models.Collection): (RecordVerificationRequest | undefined)
  }
  interface RecordVerificationRequest {
   /**
@@ -6211,8 +6151,8 @@ namespace forms {
  /**
   * SettingsUpsert is a [settings.Settings] upsert (create/update) form.
   */
- type _subYTHUI = settings.Settings
- interface SettingsUpsert extends _subYTHUI {
+ type _subLiYGB = settings.Settings
+ interface SettingsUpsert extends _subLiYGB {
  }
  interface newSettingsUpsert {
   /**
@@ -6222,7 +6162,7 @@ namespace forms {
    * If you want to submit the form as part of a transaction,
    * you can change the default Dao via [SetDao()].
    */
-  (app: CoreApp): (SettingsUpsert)
+  (app: CoreApp): (SettingsUpsert | undefined)
  }
  interface SettingsUpsert {
   /**
@@ -6258,7 +6198,7 @@ namespace forms {
   /**
    * NewTestEmailSend creates and initializes new TestEmailSend form.
    */
-  (app: CoreApp): (TestEmailSend)
+  (app: CoreApp): (TestEmailSend | undefined)
  }
  interface TestEmailSend {
   /**
@@ -6285,7 +6225,7 @@ namespace forms {
   /**
    * NewTestS3Filesystem creates and initializes new TestS3Filesystem form.
    */
-  (app: CoreApp): (TestS3Filesystem)
+  (app: CoreApp): (TestS3Filesystem | undefined)
  }
  interface TestS3Filesystem {
   /**
@@ -6333,31 +6273,31 @@ namespace apis {
   /**
    * NewNotFoundError creates and returns 404 `ApiError`.
    */
-  (message: string, data: any): (ApiError)
+  (message: string, data: any): (ApiError | undefined)
  }
  interface newBadRequestError {
   /**
    * NewBadRequestError creates and returns 400 `ApiError`.
    */
-  (message: string, data: any): (ApiError)
+  (message: string, data: any): (ApiError | undefined)
  }
  interface newForbiddenError {
   /**
    * NewForbiddenError creates and returns 403 `ApiError`.
    */
-  (message: string, data: any): (ApiError)
+  (message: string, data: any): (ApiError | undefined)
  }
  interface newUnauthorizedError {
   /**
    * NewUnauthorizedError creates and returns 401 `ApiError`.
    */
-  (message: string, data: any): (ApiError)
+  (message: string, data: any): (ApiError | undefined)
  }
  interface newApiError {
   /**
    * NewApiError creates and returns new normalized `ApiError` instance.
    */
-  (status: number, message: string, data: any): (ApiError)
+  (status: number, message: string, data: any): (ApiError | undefined)
  }
  interface backupApi {
  }
@@ -6366,7 +6306,7 @@ namespace apis {
    * InitApi creates a configured echo instance with registered
    * system and app specific routes and middlewares.
    */
-  (app: CoreApp): (echo.Echo)
+  (app: CoreApp): (echo.Echo | undefined)
  }
  interface staticDirectoryHandler {
   /**
@@ -6508,11 +6448,8 @@ namespace apis {
  }
  interface realtimeApi {
  }
- /**
-  * recordData represents the broadcasted record subscrition message data.
-  */
  interface recordData {
-  record: any //  map or models.Record
+  record?: models.Record
   action: string
  }
  interface getter {
@@ -6523,16 +6460,11 @@ namespace apis {
  }
  interface providerInfo {
   name: string
-  displayName: string
   state: string
-  authUrl: string
-  /**
-   * technically could be omitted if the provider doesn't support PKCE,
-   * but to avoid breaking existing typed clients we'll return them as empty string
-   */
   codeVerifier: string
   codeChallenge: string
   codeChallengeMethod: string
+  authUrl: string
  }
  interface recordApi {
  }
@@ -6540,14 +6472,14 @@ namespace apis {
   /**
    * Deprecated: Use RequestInfo instead.
    */
-  (c: echo.Context): (models.RequestInfo)
+  (c: echo.Context): (models.RequestInfo | undefined)
  }
  interface requestInfo {
   /**
    * RequestInfo exports cached common request data fields
    * (query, body, logged auth state, etc.) from the provided context.
    */
-  (c: echo.Context): (models.RequestInfo)
+  (c: echo.Context): (models.RequestInfo | undefined)
  }
  interface recordAuthResponse {
   /**
@@ -6624,7 +6556,7 @@ namespace apis {
    * 	})
    * ```
    */
-  (app: CoreApp, config: ServeConfig): (http.Server)
+  (app: CoreApp, config: ServeConfig): (http.Server | undefined)
  }
  interface migrationsConnection {
   db?: dbx.DB
@@ -6638,8 +6570,8 @@ namespace pocketbase {
  /**
   * appWrapper serves as a private CoreApp instance wrapper.
   */
- type _subnSLpU = CoreApp
- interface appWrapper extends _subnSLpU {
+ type _subDsllP = CoreApp
+ interface appWrapper extends _subDsllP {
  }
  /**
   * PocketBase defines a PocketBase app launcher.
@@ -6647,8 +6579,8 @@ namespace pocketbase {
   * It implements [CoreApp] via embedding and all of the app interface methods
   * could be accessed directly through the instance (eg. PocketBase.DataDir()).
   */
- type _subOfIgH = appWrapper
- interface PocketBase extends _subOfIgH {
+ type _subqXvaP = appWrapper
+ interface PocketBase extends _subqXvaP {
   /**
    * RootCmd is the main console command
    */
@@ -6661,7 +6593,7 @@ namespace pocketbase {
   /**
    * optional default values for the console flags
    */
-  defaultDev: boolean
+  defaultDebug: boolean
   defaultDataDir: string // if not set, it will fallback to "./pb_data"
   defaultEncryptionEnv: string
   /**
@@ -6687,7 +6619,7 @@ namespace pocketbase {
    * If you want to initialize the application before calling [Start()],
    * then you'll have to manually call [Bootstrap()].
    */
-  (): (PocketBase)
+  (): (PocketBase | undefined)
  }
  interface newWithConfig {
   /**
@@ -6699,7 +6631,7 @@ namespace pocketbase {
    * If you want to initialize the application before calling [Start()],
    * then you'll have to manually call [Bootstrap()].
    */
-  (config: Config): (PocketBase)
+  (config: Config): (PocketBase | undefined)
  }
  interface PocketBase {
   /**
@@ -6717,264 +6649,6 @@ namespace pocketbase {
    * system commands!
    */
   execute(): void
- }
- /**
-  * coloredWriter is a small wrapper struct to construct a [color.Color] writter.
-  */
- interface coloredWriter {
- }
- interface coloredWriter {
-  /**
-   * Write writes the p bytes using the colored writer.
-   */
-  write(p: string|Array<number>): number
- }
-}
-
-/**
- * Package template is a thin wrapper around the standard html/template
- * and text/template packages that implements a convenient registry to
- * load and cache templates on the fly concurrently.
- * 
- * It was created to assist the JSVM plugin HTML rendering, but could be used in other Go code.
- * 
- * Example:
- * 
- * ```
- * 	registry := template.NewRegistry()
- * 
- * 	html1, err := registry.LoadFiles(
- * 		// the files set wil be parsed only once and then cached
- * 		"layout.html",
- * 		"content.html",
- * 	).Render(map[string]any{"name": "John"})
- * 
- * 	html2, err := registry.LoadFiles(
- * 		// reuse the already parsed and cached files set
- * 		"layout.html",
- * 		"content.html",
- * 	).Render(map[string]any{"name": "Jane"})
- * ```
- */
-namespace template {
- interface newRegistry {
-  /**
-   * NewRegistry creates and initializes a new templates registry with
-   * some defaults (eg. global "raw" template function for unescaped HTML).
-   * 
-   * Use the Registry.Load* methods to load templates into the registry.
-   */
-  (): (Registry)
- }
- /**
-  * Registry defines a templates registry that is safe to be used by multiple goroutines.
-  * 
-  * Use the Registry.Load* methods to load templates into the registry.
-  */
- interface Registry {
- }
- interface Registry {
-  /**
-   * AddFuncs registers new global template functions.
-   * 
-   * The key of each map entry is the function name that will be used in the templates.
-   * If a function with the map entry name already exists it will be replaced with the new one.
-   * 
-   * The value of each map entry is a function that must have either a
-   * single return value, or two return values of which the second has type error.
-   * 
-   * Example:
-   * 
-   *  r.AddFuncs(map[string]any{
-   * ```
-   *    "toUpper": func(str string) string {
-   *        return strings.ToUppser(str)
-   *    },
-   *    ...
-   * ```
-   *  })
-   */
-  addFuncs(funcs: _TygojaDict): (Registry)
- }
- interface Registry {
-  /**
-   * LoadFiles caches (if not already) the specified filenames set as a
-   * single template and returns a ready to use Renderer instance.
-   * 
-   * There must be at least 1 filename specified.
-   */
-  loadFiles(...filenames: string[]): (Renderer)
- }
- interface Registry {
-  /**
-   * LoadString caches (if not already) the specified inline string as a
-   * single template and returns a ready to use Renderer instance.
-   */
-  loadString(text: string): (Renderer)
- }
- interface Registry {
-  /**
-   * LoadFS caches (if not already) the specified fs and globPatterns
-   * pair as single template and returns a ready to use Renderer instance.
-   * 
-   * There must be at least 1 file matching the provided globPattern(s)
-   * (note that most file names serves as glob patterns matching themselves).
-   */
-  loadFS(fsys: fs.FS, ...globPatterns: string[]): (Renderer)
- }
- /**
-  * Renderer defines a single parsed template.
-  */
- interface Renderer {
- }
- interface Renderer {
-  /**
-   * Render executes the template with the specified data as the dot object
-   * and returns the result as plain string.
-   */
-  render(data: any): string
- }
-}
-
-/**
- * Package io provides basic interfaces to I/O primitives.
- * Its primary job is to wrap existing implementations of such primitives,
- * such as those in package os, into shared public interfaces that
- * abstract the functionality, plus some other related primitives.
- * 
- * Because these interfaces and primitives wrap lower-level operations with
- * various implementations, unless otherwise informed clients should not
- * assume they are safe for parallel execution.
- */
-namespace io {
- /**
-  * Reader is the interface that wraps the basic Read method.
-  * 
-  * Read reads up to len(p) bytes into p. It returns the number of bytes
-  * read (0 <= n <= len(p)) and any error encountered. Even if Read
-  * returns n < len(p), it may use all of p as scratch space during the call.
-  * If some data is available but not len(p) bytes, Read conventionally
-  * returns what is available instead of waiting for more.
-  * 
-  * When Read encounters an error or end-of-file condition after
-  * successfully reading n > 0 bytes, it returns the number of
-  * bytes read. It may return the (non-nil) error from the same call
-  * or return the error (and n == 0) from a subsequent call.
-  * An instance of this general case is that a Reader returning
-  * a non-zero number of bytes at the end of the input stream may
-  * return either err == EOF or err == nil. The next Read should
-  * return 0, EOF.
-  * 
-  * Callers should always process the n > 0 bytes returned before
-  * considering the error err. Doing so correctly handles I/O errors
-  * that happen after reading some bytes and also both of the
-  * allowed EOF behaviors.
-  * 
-  * If len(p) == 0, Read should always return n == 0. It may return a
-  * non-nil error if some error condition is known, such as EOF.
-  * 
-  * Implementations of Read are discouraged from returning a
-  * zero byte count with a nil error, except when len(p) == 0.
-  * Callers should treat a return of 0 and nil as indicating that
-  * nothing happened; in particular it does not indicate EOF.
-  * 
-  * Implementations must not retain p.
-  */
- interface Reader {
-  [key:string]: any;
-  read(p: string|Array<number>): number
- }
- /**
-  * ReadSeekCloser is the interface that groups the basic Read, Seek and Close
-  * methods.
-  */
- interface ReadSeekCloser {
-  [key:string]: any;
- }
-}
-
-/**
- * Package bytes implements functions for the manipulation of byte slices.
- * It is analogous to the facilities of the [strings] package.
- */
-namespace bytes {
- /**
-  * A Reader implements the io.Reader, io.ReaderAt, io.WriterTo, io.Seeker,
-  * io.ByteScanner, and io.RuneScanner interfaces by reading from
-  * a byte slice.
-  * Unlike a Buffer, a Reader is read-only and supports seeking.
-  * The zero value for Reader operates like a Reader of an empty slice.
-  */
- interface Reader {
- }
- interface Reader {
-  /**
-   * Len returns the number of bytes of the unread portion of the
-   * slice.
-   */
-  len(): number
- }
- interface Reader {
-  /**
-   * Size returns the original length of the underlying byte slice.
-   * Size is the number of bytes available for reading via ReadAt.
-   * The result is unaffected by any method calls except Reset.
-   */
-  size(): number
- }
- interface Reader {
-  /**
-   * Read implements the io.Reader interface.
-   */
-  read(b: string|Array<number>): number
- }
- interface Reader {
-  /**
-   * ReadAt implements the io.ReaderAt interface.
-   */
-  readAt(b: string|Array<number>, off: number): number
- }
- interface Reader {
-  /**
-   * ReadByte implements the io.ByteReader interface.
-   */
-  readByte(): number
- }
- interface Reader {
-  /**
-   * UnreadByte complements ReadByte in implementing the io.ByteScanner interface.
-   */
-  unreadByte(): void
- }
- interface Reader {
-  /**
-   * ReadRune implements the io.RuneReader interface.
-   */
-  readRune(): [number, number]
- }
- interface Reader {
-  /**
-   * UnreadRune complements ReadRune in implementing the io.RuneScanner interface.
-   */
-  unreadRune(): void
- }
- interface Reader {
-  /**
-   * Seek implements the io.Seeker interface.
-   */
-  seek(offset: number, whence: number): number
- }
- interface Reader {
-  /**
-   * WriteTo implements the io.WriterTo interface.
-   */
-  writeTo(w: io.Writer): number
- }
- interface Reader {
-  /**
-   * Reset resets the Reader to be reading from b.
-   */
-  reset(b: string|Array<number>): void
  }
 }
 
@@ -7054,8 +6728,6 @@ namespace syscall {
    */
   gidMappingsEnableSetgroups: boolean
   ambientCaps: Array<number> // Ambient capabilities (Linux only)
-  useCgroupFD: boolean // Whether to make use of the CgroupFD field.
-  cgroupFD: number // File descriptor of a cgroup to put the new process into.
  }
  // @ts-ignore
  import errorspkg = errors
@@ -7099,8 +6771,8 @@ namespace syscall {
   * 	}
   * ```
   * 
-  * Errno values can be tested against error values using errors.Is.
-  * For example:
+  * Errno values can be tested against error values from the os package
+  * using errors.Is. For example:
   * 
   * ```
   * 	_, _, err := syscall.Syscall(...)
@@ -7169,7 +6841,7 @@ namespace syscall {
  * The canonical way to strip a monotonic clock reading is to use t = t.Round(0).
  * 
  * If Times t and u both contain monotonic clock readings, the operations
- * t.After(u), t.Before(u), t.Equal(u), t.Compare(u), and t.Sub(u) are carried out
+ * t.After(u), t.Before(u), t.Equal(u), and t.Sub(u) are carried out
  * using the monotonic clock readings alone, ignoring the wall clock
  * readings. If either t or u contains no monotonic clock reading, these
  * operations fall back to using the wall clock readings.
@@ -7302,13 +6974,6 @@ namespace time {
    * Before reports whether the time instant t is before u.
    */
   before(u: Time): boolean
- }
- interface Time {
-  /**
-   * Compare compares the time instant t with u. If t is before u, it returns -1;
-   * if t is after u, it returns +1; if they're the same, it returns 0.
-   */
-  compare(u: Time): number
  }
  interface Time {
   /**
@@ -7534,7 +7199,7 @@ namespace time {
   /**
    * Location returns the time zone information associated with t.
    */
-  location(): (Location)
+  location(): (Location | undefined)
  }
  interface Time {
   /**
@@ -7622,32 +7287,28 @@ namespace time {
  interface Time {
   /**
    * MarshalJSON implements the json.Marshaler interface.
-   * The time is a quoted string in the RFC 3339 format with sub-second precision.
-   * If the timestamp cannot be represented as valid RFC 3339
-   * (e.g., the year is out of range), then an error is reported.
+   * The time is a quoted string in RFC 3339 format, with sub-second precision added if present.
    */
   marshalJSON(): string|Array<number>
  }
  interface Time {
   /**
    * UnmarshalJSON implements the json.Unmarshaler interface.
-   * The time must be a quoted string in the RFC 3339 format.
+   * The time is expected to be a quoted string in RFC 3339 format.
    */
   unmarshalJSON(data: string|Array<number>): void
  }
  interface Time {
   /**
    * MarshalText implements the encoding.TextMarshaler interface.
-   * The time is formatted in RFC 3339 format with sub-second precision.
-   * If the timestamp cannot be represented as valid RFC 3339
-   * (e.g., the year is out of range), then an error is reported.
+   * The time is formatted in RFC 3339 format, with sub-second precision added if present.
    */
   marshalText(): string|Array<number>
  }
  interface Time {
   /**
    * UnmarshalText implements the encoding.TextUnmarshaler interface.
-   * The time must be in the RFC 3339 format.
+   * The time is expected to be in RFC 3339 format.
    */
   unmarshalText(data: string|Array<number>): void
  }
@@ -7689,27 +7350,21 @@ namespace time {
  * cancellation signals, and other request-scoped values across API boundaries
  * and between processes.
  * 
- * Incoming requests to a server should create a [Context], and outgoing
+ * Incoming requests to a server should create a Context, and outgoing
  * calls to servers should accept a Context. The chain of function
  * calls between them must propagate the Context, optionally replacing
- * it with a derived Context created using [WithCancel], [WithDeadline],
- * [WithTimeout], or [WithValue]. When a Context is canceled, all
+ * it with a derived Context created using WithCancel, WithDeadline,
+ * WithTimeout, or WithValue. When a Context is canceled, all
  * Contexts derived from it are also canceled.
  * 
- * The [WithCancel], [WithDeadline], and [WithTimeout] functions take a
+ * The WithCancel, WithDeadline, and WithTimeout functions take a
  * Context (the parent) and return a derived Context (the child) and a
- * [CancelFunc]. Calling the CancelFunc cancels the child and its
+ * CancelFunc. Calling the CancelFunc cancels the child and its
  * children, removes the parent's reference to the child, and stops
  * any associated timers. Failing to call the CancelFunc leaks the
  * child and its children until the parent is canceled or the timer
  * fires. The go vet tool checks that CancelFuncs are used on all
  * control-flow paths.
- * 
- * The [WithCancelCause] function returns a [CancelCauseFunc], which
- * takes an error and records it as the cancellation cause. Calling
- * [Cause] on the canceled context or any of its children retrieves
- * the cause. If no cause is specified, Cause(ctx) returns the same
- * value as ctx.Err().
  * 
  * Programs that use Contexts should follow these rules to keep interfaces
  * consistent across packages and enable static analysis tools to check context
@@ -7725,7 +7380,7 @@ namespace time {
  * 	}
  * ```
  * 
- * Do not pass a nil [Context], even if a function permits it. Pass [context.TODO]
+ * Do not pass a nil Context, even if a function permits it. Pass context.TODO
  * if you are unsure about which Context to use.
  * 
  * Use context Values only for request-scoped data that transits processes and
@@ -7844,6 +7499,160 @@ namespace context {
    * ```
    */
   value(key: any): any
+ }
+}
+
+/**
+ * Package io provides basic interfaces to I/O primitives.
+ * Its primary job is to wrap existing implementations of such primitives,
+ * such as those in package os, into shared public interfaces that
+ * abstract the functionality, plus some other related primitives.
+ * 
+ * Because these interfaces and primitives wrap lower-level operations with
+ * various implementations, unless otherwise informed clients should not
+ * assume they are safe for parallel execution.
+ */
+namespace io {
+ /**
+  * Reader is the interface that wraps the basic Read method.
+  * 
+  * Read reads up to len(p) bytes into p. It returns the number of bytes
+  * read (0 <= n <= len(p)) and any error encountered. Even if Read
+  * returns n < len(p), it may use all of p as scratch space during the call.
+  * If some data is available but not len(p) bytes, Read conventionally
+  * returns what is available instead of waiting for more.
+  * 
+  * When Read encounters an error or end-of-file condition after
+  * successfully reading n > 0 bytes, it returns the number of
+  * bytes read. It may return the (non-nil) error from the same call
+  * or return the error (and n == 0) from a subsequent call.
+  * An instance of this general case is that a Reader returning
+  * a non-zero number of bytes at the end of the input stream may
+  * return either err == EOF or err == nil. The next Read should
+  * return 0, EOF.
+  * 
+  * Callers should always process the n > 0 bytes returned before
+  * considering the error err. Doing so correctly handles I/O errors
+  * that happen after reading some bytes and also both of the
+  * allowed EOF behaviors.
+  * 
+  * Implementations of Read are discouraged from returning a
+  * zero byte count with a nil error, except when len(p) == 0.
+  * Callers should treat a return of 0 and nil as indicating that
+  * nothing happened; in particular it does not indicate EOF.
+  * 
+  * Implementations must not retain p.
+  */
+ interface Reader {
+  [key:string]: any;
+  read(p: string|Array<number>): number
+ }
+ /**
+  * Writer is the interface that wraps the basic Write method.
+  * 
+  * Write writes len(p) bytes from p to the underlying data stream.
+  * It returns the number of bytes written from p (0 <= n <= len(p))
+  * and any error encountered that caused the write to stop early.
+  * Write must return a non-nil error if it returns n < len(p).
+  * Write must not modify the slice data, even temporarily.
+  * 
+  * Implementations must not retain p.
+  */
+ interface Writer {
+  [key:string]: any;
+  write(p: string|Array<number>): number
+ }
+ /**
+  * ReadSeekCloser is the interface that groups the basic Read, Seek and Close
+  * methods.
+  */
+ interface ReadSeekCloser {
+  [key:string]: any;
+ }
+}
+
+/**
+ * Package bytes implements functions for the manipulation of byte slices.
+ * It is analogous to the facilities of the strings package.
+ */
+namespace bytes {
+ /**
+  * A Reader implements the io.Reader, io.ReaderAt, io.WriterTo, io.Seeker,
+  * io.ByteScanner, and io.RuneScanner interfaces by reading from
+  * a byte slice.
+  * Unlike a Buffer, a Reader is read-only and supports seeking.
+  * The zero value for Reader operates like a Reader of an empty slice.
+  */
+ interface Reader {
+ }
+ interface Reader {
+  /**
+   * Len returns the number of bytes of the unread portion of the
+   * slice.
+   */
+  len(): number
+ }
+ interface Reader {
+  /**
+   * Size returns the original length of the underlying byte slice.
+   * Size is the number of bytes available for reading via ReadAt.
+   * The result is unaffected by any method calls except Reset.
+   */
+  size(): number
+ }
+ interface Reader {
+  /**
+   * Read implements the io.Reader interface.
+   */
+  read(b: string|Array<number>): number
+ }
+ interface Reader {
+  /**
+   * ReadAt implements the io.ReaderAt interface.
+   */
+  readAt(b: string|Array<number>, off: number): number
+ }
+ interface Reader {
+  /**
+   * ReadByte implements the io.ByteReader interface.
+   */
+  readByte(): number
+ }
+ interface Reader {
+  /**
+   * UnreadByte complements ReadByte in implementing the io.ByteScanner interface.
+   */
+  unreadByte(): void
+ }
+ interface Reader {
+  /**
+   * ReadRune implements the io.RuneReader interface.
+   */
+  readRune(): [number, number]
+ }
+ interface Reader {
+  /**
+   * UnreadRune complements ReadRune in implementing the io.RuneScanner interface.
+   */
+  unreadRune(): void
+ }
+ interface Reader {
+  /**
+   * Seek implements the io.Seeker interface.
+   */
+  seek(offset: number, whence: number): number
+ }
+ interface Reader {
+  /**
+   * WriteTo implements the io.WriterTo interface.
+   */
+  writeTo(w: io.Writer): number
+ }
+ interface Reader {
+  /**
+   * Reset resets the Reader to be reading from b.
+   */
+  reset(b: string|Array<number>): void
  }
 }
 
@@ -8001,10 +7810,8 @@ namespace fs {
   * The error result returned by the function controls how WalkDir
   * continues. If the function returns the special value SkipDir, WalkDir
   * skips the current directory (path if d.IsDir() is true, otherwise
-  * path's parent directory). If the function returns the special value
-  * SkipAll, WalkDir skips all remaining files and directories. Otherwise,
-  * if the function returns a non-nil error, WalkDir stops entirely and
-  * returns that error.
+  * path's parent directory). Otherwise, if the function returns a non-nil
+  * error, WalkDir stops entirely and returns that error.
   * 
   * The err argument reports an error related to path, signaling that
   * WalkDir will not walk into that directory. The function can decide how
@@ -8023,8 +7830,8 @@ namespace fs {
   * ReadDir. In this second case, the function is called twice with the
   * path of the directory: the first call is before the directory read is
   * attempted and has err set to nil, giving the function a chance to
-  * return SkipDir or SkipAll and avoid the ReadDir entirely. The second call
-  * is after a failed ReadDir and reports the error from ReadDir.
+  * return SkipDir and avoid the ReadDir entirely. The second call is
+  * after a failed ReadDir and reports the error from ReadDir.
   * (If ReadDir succeeds, there is no second call.)
   * 
   * The differences between WalkDirFunc compared to filepath.WalkFunc are:
@@ -8032,1087 +7839,12 @@ namespace fs {
   * ```
   *   - The second argument has type fs.DirEntry instead of fs.FileInfo.
   *   - The function is called before reading a directory, to allow SkipDir
-  *     or SkipAll to bypass the directory read entirely or skip all remaining
-  *     files and directories respectively.
+  *     to bypass the directory read entirely.
   *   - If a directory read fails, the function is called a second time
   *     for that directory to report the error.
   * ```
   */
  interface WalkDirFunc {(path: string, d: DirEntry, err: Error): void }
-}
-
-/**
- * Package sql provides a generic interface around SQL (or SQL-like)
- * databases.
- * 
- * The sql package must be used in conjunction with a database driver.
- * See https://golang.org/s/sqldrivers for a list of drivers.
- * 
- * Drivers that do not support context cancellation will not return until
- * after the query is completed.
- * 
- * For usage examples, see the wiki page at
- * https://golang.org/s/sqlwiki.
- */
-namespace sql {
- /**
-  * TxOptions holds the transaction options to be used in DB.BeginTx.
-  */
- interface TxOptions {
-  /**
-   * Isolation is the transaction isolation level.
-   * If zero, the driver or database's default level is used.
-   */
-  isolation: IsolationLevel
-  readOnly: boolean
- }
- /**
-  * DB is a database handle representing a pool of zero or more
-  * underlying connections. It's safe for concurrent use by multiple
-  * goroutines.
-  * 
-  * The sql package creates and frees connections automatically; it
-  * also maintains a free pool of idle connections. If the database has
-  * a concept of per-connection state, such state can be reliably observed
-  * within a transaction (Tx) or connection (Conn). Once DB.Begin is called, the
-  * returned Tx is bound to a single connection. Once Commit or
-  * Rollback is called on the transaction, that transaction's
-  * connection is returned to DB's idle connection pool. The pool size
-  * can be controlled with SetMaxIdleConns.
-  */
- interface DB {
- }
- interface DB {
-  /**
-   * PingContext verifies a connection to the database is still alive,
-   * establishing a connection if necessary.
-   */
-  pingContext(ctx: context.Context): void
- }
- interface DB {
-  /**
-   * Ping verifies a connection to the database is still alive,
-   * establishing a connection if necessary.
-   * 
-   * Ping uses context.Background internally; to specify the context, use
-   * PingContext.
-   */
-  ping(): void
- }
- interface DB {
-  /**
-   * Close closes the database and prevents new queries from starting.
-   * Close then waits for all queries that have started processing on the server
-   * to finish.
-   * 
-   * It is rare to Close a DB, as the DB handle is meant to be
-   * long-lived and shared between many goroutines.
-   */
-  close(): void
- }
- interface DB {
-  /**
-   * SetMaxIdleConns sets the maximum number of connections in the idle
-   * connection pool.
-   * 
-   * If MaxOpenConns is greater than 0 but less than the new MaxIdleConns,
-   * then the new MaxIdleConns will be reduced to match the MaxOpenConns limit.
-   * 
-   * If n <= 0, no idle connections are retained.
-   * 
-   * The default max idle connections is currently 2. This may change in
-   * a future release.
-   */
-  setMaxIdleConns(n: number): void
- }
- interface DB {
-  /**
-   * SetMaxOpenConns sets the maximum number of open connections to the database.
-   * 
-   * If MaxIdleConns is greater than 0 and the new MaxOpenConns is less than
-   * MaxIdleConns, then MaxIdleConns will be reduced to match the new
-   * MaxOpenConns limit.
-   * 
-   * If n <= 0, then there is no limit on the number of open connections.
-   * The default is 0 (unlimited).
-   */
-  setMaxOpenConns(n: number): void
- }
- interface DB {
-  /**
-   * SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
-   * 
-   * Expired connections may be closed lazily before reuse.
-   * 
-   * If d <= 0, connections are not closed due to a connection's age.
-   */
-  setConnMaxLifetime(d: time.Duration): void
- }
- interface DB {
-  /**
-   * SetConnMaxIdleTime sets the maximum amount of time a connection may be idle.
-   * 
-   * Expired connections may be closed lazily before reuse.
-   * 
-   * If d <= 0, connections are not closed due to a connection's idle time.
-   */
-  setConnMaxIdleTime(d: time.Duration): void
- }
- interface DB {
-  /**
-   * Stats returns database statistics.
-   */
-  stats(): DBStats
- }
- interface DB {
-  /**
-   * PrepareContext creates a prepared statement for later queries or executions.
-   * Multiple queries or executions may be run concurrently from the
-   * returned statement.
-   * The caller must call the statement's Close method
-   * when the statement is no longer needed.
-   * 
-   * The provided context is used for the preparation of the statement, not for the
-   * execution of the statement.
-   */
-  prepareContext(ctx: context.Context, query: string): (Stmt)
- }
- interface DB {
-  /**
-   * Prepare creates a prepared statement for later queries or executions.
-   * Multiple queries or executions may be run concurrently from the
-   * returned statement.
-   * The caller must call the statement's Close method
-   * when the statement is no longer needed.
-   * 
-   * Prepare uses context.Background internally; to specify the context, use
-   * PrepareContext.
-   */
-  prepare(query: string): (Stmt)
- }
- interface DB {
-  /**
-   * ExecContext executes a query without returning any rows.
-   * The args are for any placeholder parameters in the query.
-   */
-  execContext(ctx: context.Context, query: string, ...args: any[]): Result
- }
- interface DB {
-  /**
-   * Exec executes a query without returning any rows.
-   * The args are for any placeholder parameters in the query.
-   * 
-   * Exec uses context.Background internally; to specify the context, use
-   * ExecContext.
-   */
-  exec(query: string, ...args: any[]): Result
- }
- interface DB {
-  /**
-   * QueryContext executes a query that returns rows, typically a SELECT.
-   * The args are for any placeholder parameters in the query.
-   */
-  queryContext(ctx: context.Context, query: string, ...args: any[]): (Rows)
- }
- interface DB {
-  /**
-   * Query executes a query that returns rows, typically a SELECT.
-   * The args are for any placeholder parameters in the query.
-   * 
-   * Query uses context.Background internally; to specify the context, use
-   * QueryContext.
-   */
-  query(query: string, ...args: any[]): (Rows)
- }
- interface DB {
-  /**
-   * QueryRowContext executes a query that is expected to return at most one row.
-   * QueryRowContext always returns a non-nil value. Errors are deferred until
-   * Row's Scan method is called.
-   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
-   * Otherwise, the *Row's Scan scans the first selected row and discards
-   * the rest.
-   */
-  queryRowContext(ctx: context.Context, query: string, ...args: any[]): (Row)
- }
- interface DB {
-  /**
-   * QueryRow executes a query that is expected to return at most one row.
-   * QueryRow always returns a non-nil value. Errors are deferred until
-   * Row's Scan method is called.
-   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
-   * Otherwise, the *Row's Scan scans the first selected row and discards
-   * the rest.
-   * 
-   * QueryRow uses context.Background internally; to specify the context, use
-   * QueryRowContext.
-   */
-  queryRow(query: string, ...args: any[]): (Row)
- }
- interface DB {
-  /**
-   * BeginTx starts a transaction.
-   * 
-   * The provided context is used until the transaction is committed or rolled back.
-   * If the context is canceled, the sql package will roll back
-   * the transaction. Tx.Commit will return an error if the context provided to
-   * BeginTx is canceled.
-   * 
-   * The provided TxOptions is optional and may be nil if defaults should be used.
-   * If a non-default isolation level is used that the driver doesn't support,
-   * an error will be returned.
-   */
-  beginTx(ctx: context.Context, opts: TxOptions): (Tx)
- }
- interface DB {
-  /**
-   * Begin starts a transaction. The default isolation level is dependent on
-   * the driver.
-   * 
-   * Begin uses context.Background internally; to specify the context, use
-   * BeginTx.
-   */
-  begin(): (Tx)
- }
- interface DB {
-  /**
-   * Driver returns the database's underlying driver.
-   */
-  driver(): any
- }
- interface DB {
-  /**
-   * Conn returns a single connection by either opening a new connection
-   * or returning an existing connection from the connection pool. Conn will
-   * block until either a connection is returned or ctx is canceled.
-   * Queries run on the same Conn will be run in the same database session.
-   * 
-   * Every Conn must be returned to the database pool after use by
-   * calling Conn.Close.
-   */
-  conn(ctx: context.Context): (Conn)
- }
- /**
-  * Tx is an in-progress database transaction.
-  * 
-  * A transaction must end with a call to Commit or Rollback.
-  * 
-  * After a call to Commit or Rollback, all operations on the
-  * transaction fail with ErrTxDone.
-  * 
-  * The statements prepared for a transaction by calling
-  * the transaction's Prepare or Stmt methods are closed
-  * by the call to Commit or Rollback.
-  */
- interface Tx {
- }
- interface Tx {
-  /**
-   * Commit commits the transaction.
-   */
-  commit(): void
- }
- interface Tx {
-  /**
-   * Rollback aborts the transaction.
-   */
-  rollback(): void
- }
- interface Tx {
-  /**
-   * PrepareContext creates a prepared statement for use within a transaction.
-   * 
-   * The returned statement operates within the transaction and will be closed
-   * when the transaction has been committed or rolled back.
-   * 
-   * To use an existing prepared statement on this transaction, see Tx.Stmt.
-   * 
-   * The provided context will be used for the preparation of the context, not
-   * for the execution of the returned statement. The returned statement
-   * will run in the transaction context.
-   */
-  prepareContext(ctx: context.Context, query: string): (Stmt)
- }
- interface Tx {
-  /**
-   * Prepare creates a prepared statement for use within a transaction.
-   * 
-   * The returned statement operates within the transaction and will be closed
-   * when the transaction has been committed or rolled back.
-   * 
-   * To use an existing prepared statement on this transaction, see Tx.Stmt.
-   * 
-   * Prepare uses context.Background internally; to specify the context, use
-   * PrepareContext.
-   */
-  prepare(query: string): (Stmt)
- }
- interface Tx {
-  /**
-   * StmtContext returns a transaction-specific prepared statement from
-   * an existing statement.
-   * 
-   * Example:
-   * 
-   * ```
-   * 	updateMoney, err := db.Prepare("UPDATE balance SET money=money+? WHERE id=?")
-   * 	...
-   * 	tx, err := db.Begin()
-   * 	...
-   * 	res, err := tx.StmtContext(ctx, updateMoney).Exec(123.45, 98293203)
-   * ```
-   * 
-   * The provided context is used for the preparation of the statement, not for the
-   * execution of the statement.
-   * 
-   * The returned statement operates within the transaction and will be closed
-   * when the transaction has been committed or rolled back.
-   */
-  stmtContext(ctx: context.Context, stmt: Stmt): (Stmt)
- }
- interface Tx {
-  /**
-   * Stmt returns a transaction-specific prepared statement from
-   * an existing statement.
-   * 
-   * Example:
-   * 
-   * ```
-   * 	updateMoney, err := db.Prepare("UPDATE balance SET money=money+? WHERE id=?")
-   * 	...
-   * 	tx, err := db.Begin()
-   * 	...
-   * 	res, err := tx.Stmt(updateMoney).Exec(123.45, 98293203)
-   * ```
-   * 
-   * The returned statement operates within the transaction and will be closed
-   * when the transaction has been committed or rolled back.
-   * 
-   * Stmt uses context.Background internally; to specify the context, use
-   * StmtContext.
-   */
-  stmt(stmt: Stmt): (Stmt)
- }
- interface Tx {
-  /**
-   * ExecContext executes a query that doesn't return rows.
-   * For example: an INSERT and UPDATE.
-   */
-  execContext(ctx: context.Context, query: string, ...args: any[]): Result
- }
- interface Tx {
-  /**
-   * Exec executes a query that doesn't return rows.
-   * For example: an INSERT and UPDATE.
-   * 
-   * Exec uses context.Background internally; to specify the context, use
-   * ExecContext.
-   */
-  exec(query: string, ...args: any[]): Result
- }
- interface Tx {
-  /**
-   * QueryContext executes a query that returns rows, typically a SELECT.
-   */
-  queryContext(ctx: context.Context, query: string, ...args: any[]): (Rows)
- }
- interface Tx {
-  /**
-   * Query executes a query that returns rows, typically a SELECT.
-   * 
-   * Query uses context.Background internally; to specify the context, use
-   * QueryContext.
-   */
-  query(query: string, ...args: any[]): (Rows)
- }
- interface Tx {
-  /**
-   * QueryRowContext executes a query that is expected to return at most one row.
-   * QueryRowContext always returns a non-nil value. Errors are deferred until
-   * Row's Scan method is called.
-   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
-   * Otherwise, the *Row's Scan scans the first selected row and discards
-   * the rest.
-   */
-  queryRowContext(ctx: context.Context, query: string, ...args: any[]): (Row)
- }
- interface Tx {
-  /**
-   * QueryRow executes a query that is expected to return at most one row.
-   * QueryRow always returns a non-nil value. Errors are deferred until
-   * Row's Scan method is called.
-   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
-   * Otherwise, the *Row's Scan scans the first selected row and discards
-   * the rest.
-   * 
-   * QueryRow uses context.Background internally; to specify the context, use
-   * QueryRowContext.
-   */
-  queryRow(query: string, ...args: any[]): (Row)
- }
- /**
-  * Stmt is a prepared statement.
-  * A Stmt is safe for concurrent use by multiple goroutines.
-  * 
-  * If a Stmt is prepared on a Tx or Conn, it will be bound to a single
-  * underlying connection forever. If the Tx or Conn closes, the Stmt will
-  * become unusable and all operations will return an error.
-  * If a Stmt is prepared on a DB, it will remain usable for the lifetime of the
-  * DB. When the Stmt needs to execute on a new underlying connection, it will
-  * prepare itself on the new connection automatically.
-  */
- interface Stmt {
- }
- interface Stmt {
-  /**
-   * ExecContext executes a prepared statement with the given arguments and
-   * returns a Result summarizing the effect of the statement.
-   */
-  execContext(ctx: context.Context, ...args: any[]): Result
- }
- interface Stmt {
-  /**
-   * Exec executes a prepared statement with the given arguments and
-   * returns a Result summarizing the effect of the statement.
-   * 
-   * Exec uses context.Background internally; to specify the context, use
-   * ExecContext.
-   */
-  exec(...args: any[]): Result
- }
- interface Stmt {
-  /**
-   * QueryContext executes a prepared query statement with the given arguments
-   * and returns the query results as a *Rows.
-   */
-  queryContext(ctx: context.Context, ...args: any[]): (Rows)
- }
- interface Stmt {
-  /**
-   * Query executes a prepared query statement with the given arguments
-   * and returns the query results as a *Rows.
-   * 
-   * Query uses context.Background internally; to specify the context, use
-   * QueryContext.
-   */
-  query(...args: any[]): (Rows)
- }
- interface Stmt {
-  /**
-   * QueryRowContext executes a prepared query statement with the given arguments.
-   * If an error occurs during the execution of the statement, that error will
-   * be returned by a call to Scan on the returned *Row, which is always non-nil.
-   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
-   * Otherwise, the *Row's Scan scans the first selected row and discards
-   * the rest.
-   */
-  queryRowContext(ctx: context.Context, ...args: any[]): (Row)
- }
- interface Stmt {
-  /**
-   * QueryRow executes a prepared query statement with the given arguments.
-   * If an error occurs during the execution of the statement, that error will
-   * be returned by a call to Scan on the returned *Row, which is always non-nil.
-   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
-   * Otherwise, the *Row's Scan scans the first selected row and discards
-   * the rest.
-   * 
-   * Example usage:
-   * 
-   * ```
-   * 	var name string
-   * 	err := nameByUseridStmt.QueryRow(id).Scan(&name)
-   * ```
-   * 
-   * QueryRow uses context.Background internally; to specify the context, use
-   * QueryRowContext.
-   */
-  queryRow(...args: any[]): (Row)
- }
- interface Stmt {
-  /**
-   * Close closes the statement.
-   */
-  close(): void
- }
- /**
-  * Rows is the result of a query. Its cursor starts before the first row
-  * of the result set. Use Next to advance from row to row.
-  */
- interface Rows {
- }
- interface Rows {
-  /**
-   * Next prepares the next result row for reading with the Scan method. It
-   * returns true on success, or false if there is no next result row or an error
-   * happened while preparing it. Err should be consulted to distinguish between
-   * the two cases.
-   * 
-   * Every call to Scan, even the first one, must be preceded by a call to Next.
-   */
-  next(): boolean
- }
- interface Rows {
-  /**
-   * NextResultSet prepares the next result set for reading. It reports whether
-   * there is further result sets, or false if there is no further result set
-   * or if there is an error advancing to it. The Err method should be consulted
-   * to distinguish between the two cases.
-   * 
-   * After calling NextResultSet, the Next method should always be called before
-   * scanning. If there are further result sets they may not have rows in the result
-   * set.
-   */
-  nextResultSet(): boolean
- }
- interface Rows {
-  /**
-   * Err returns the error, if any, that was encountered during iteration.
-   * Err may be called after an explicit or implicit Close.
-   */
-  err(): void
- }
- interface Rows {
-  /**
-   * Columns returns the column names.
-   * Columns returns an error if the rows are closed.
-   */
-  columns(): Array<string>
- }
- interface Rows {
-  /**
-   * ColumnTypes returns column information such as column type, length,
-   * and nullable. Some information may not be available from some drivers.
-   */
-  columnTypes(): Array<(ColumnType | undefined)>
- }
- interface Rows {
-  /**
-   * Scan copies the columns in the current row into the values pointed
-   * at by dest. The number of values in dest must be the same as the
-   * number of columns in Rows.
-   * 
-   * Scan converts columns read from the database into the following
-   * common Go types and special types provided by the sql package:
-   * 
-   * ```
-   * 	*string
-   * 	*[]byte
-   * 	*int, *int8, *int16, *int32, *int64
-   * 	*uint, *uint8, *uint16, *uint32, *uint64
-   * 	*bool
-   * 	*float32, *float64
-   * 	*interface{}
-   * 	*RawBytes
-   * 	*Rows (cursor value)
-   * 	any type implementing Scanner (see Scanner docs)
-   * ```
-   * 
-   * In the most simple case, if the type of the value from the source
-   * column is an integer, bool or string type T and dest is of type *T,
-   * Scan simply assigns the value through the pointer.
-   * 
-   * Scan also converts between string and numeric types, as long as no
-   * information would be lost. While Scan stringifies all numbers
-   * scanned from numeric database columns into *string, scans into
-   * numeric types are checked for overflow. For example, a float64 with
-   * value 300 or a string with value "300" can scan into a uint16, but
-   * not into a uint8, though float64(255) or "255" can scan into a
-   * uint8. One exception is that scans of some float64 numbers to
-   * strings may lose information when stringifying. In general, scan
-   * floating point columns into *float64.
-   * 
-   * If a dest argument has type *[]byte, Scan saves in that argument a
-   * copy of the corresponding data. The copy is owned by the caller and
-   * can be modified and held indefinitely. The copy can be avoided by
-   * using an argument of type *RawBytes instead; see the documentation
-   * for RawBytes for restrictions on its use.
-   * 
-   * If an argument has type *interface{}, Scan copies the value
-   * provided by the underlying driver without conversion. When scanning
-   * from a source value of type []byte to *interface{}, a copy of the
-   * slice is made and the caller owns the result.
-   * 
-   * Source values of type time.Time may be scanned into values of type
-   * *time.Time, *interface{}, *string, or *[]byte. When converting to
-   * the latter two, time.RFC3339Nano is used.
-   * 
-   * Source values of type bool may be scanned into types *bool,
-   * *interface{}, *string, *[]byte, or *RawBytes.
-   * 
-   * For scanning into *bool, the source may be true, false, 1, 0, or
-   * string inputs parseable by strconv.ParseBool.
-   * 
-   * Scan can also convert a cursor returned from a query, such as
-   * "select cursor(select * from my_table) from dual", into a
-   * *Rows value that can itself be scanned from. The parent
-   * select query will close any cursor *Rows if the parent *Rows is closed.
-   * 
-   * If any of the first arguments implementing Scanner returns an error,
-   * that error will be wrapped in the returned error.
-   */
-  scan(...dest: any[]): void
- }
- interface Rows {
-  /**
-   * Close closes the Rows, preventing further enumeration. If Next is called
-   * and returns false and there are no further result sets,
-   * the Rows are closed automatically and it will suffice to check the
-   * result of Err. Close is idempotent and does not affect the result of Err.
-   */
-  close(): void
- }
- /**
-  * A Result summarizes an executed SQL command.
-  */
- interface Result {
-  [key:string]: any;
-  /**
-   * LastInsertId returns the integer generated by the database
-   * in response to a command. Typically this will be from an
-   * "auto increment" column when inserting a new row. Not all
-   * databases support this feature, and the syntax of such
-   * statements varies.
-   */
-  lastInsertId(): number
-  /**
-   * RowsAffected returns the number of rows affected by an
-   * update, insert, or delete. Not every database or database
-   * driver may support this.
-   */
-  rowsAffected(): number
- }
-}
-
-/**
- * Package exec runs external commands. It wraps os.StartProcess to make it
- * easier to remap stdin and stdout, connect I/O with pipes, and do other
- * adjustments.
- * 
- * Unlike the "system" library call from C and other languages, the
- * os/exec package intentionally does not invoke the system shell and
- * does not expand any glob patterns or handle other expansions,
- * pipelines, or redirections typically done by shells. The package
- * behaves more like C's "exec" family of functions. To expand glob
- * patterns, either call the shell directly, taking care to escape any
- * dangerous input, or use the path/filepath package's Glob function.
- * To expand environment variables, use package os's ExpandEnv.
- * 
- * Note that the examples in this package assume a Unix system.
- * They may not run on Windows, and they do not run in the Go Playground
- * used by golang.org and godoc.org.
- * 
- * # Executables in the current directory
- * 
- * The functions Command and LookPath look for a program
- * in the directories listed in the current path, following the
- * conventions of the host operating system.
- * Operating systems have for decades included the current
- * directory in this search, sometimes implicitly and sometimes
- * configured explicitly that way by default.
- * Modern practice is that including the current directory
- * is usually unexpected and often leads to security problems.
- * 
- * To avoid those security problems, as of Go 1.19, this package will not resolve a program
- * using an implicit or explicit path entry relative to the current directory.
- * That is, if you run exec.LookPath("go"), it will not successfully return
- * ./go on Unix nor .\go.exe on Windows, no matter how the path is configured.
- * Instead, if the usual path algorithms would result in that answer,
- * these functions return an error err satisfying errors.Is(err, ErrDot).
- * 
- * For example, consider these two program snippets:
- * 
- * ```
- * 	path, err := exec.LookPath("prog")
- * 	if err != nil {
- * 		log.Fatal(err)
- * 	}
- * 	use(path)
- * ```
- * 
- * and
- * 
- * ```
- * 	cmd := exec.Command("prog")
- * 	if err := cmd.Run(); err != nil {
- * 		log.Fatal(err)
- * 	}
- * ```
- * 
- * These will not find and run ./prog or .\prog.exe,
- * no matter how the current path is configured.
- * 
- * Code that always wants to run a program from the current directory
- * can be rewritten to say "./prog" instead of "prog".
- * 
- * Code that insists on including results from relative path entries
- * can instead override the error using an errors.Is check:
- * 
- * ```
- * 	path, err := exec.LookPath("prog")
- * 	if errors.Is(err, exec.ErrDot) {
- * 		err = nil
- * 	}
- * 	if err != nil {
- * 		log.Fatal(err)
- * 	}
- * 	use(path)
- * ```
- * 
- * and
- * 
- * ```
- * 	cmd := exec.Command("prog")
- * 	if errors.Is(cmd.Err, exec.ErrDot) {
- * 		cmd.Err = nil
- * 	}
- * 	if err := cmd.Run(); err != nil {
- * 		log.Fatal(err)
- * 	}
- * ```
- * 
- * Setting the environment variable GODEBUG=execerrdot=0
- * disables generation of ErrDot entirely, temporarily restoring the pre-Go 1.19
- * behavior for programs that are unable to apply more targeted fixes.
- * A future version of Go may remove support for this variable.
- * 
- * Before adding such overrides, make sure you understand the
- * security implications of doing so.
- * See https://go.dev/blog/path-security for more information.
- */
-namespace exec {
- /**
-  * Cmd represents an external command being prepared or run.
-  * 
-  * A Cmd cannot be reused after calling its Run, Output or CombinedOutput
-  * methods.
-  */
- interface Cmd {
-  /**
-   * Path is the path of the command to run.
-   * 
-   * This is the only field that must be set to a non-zero
-   * value. If Path is relative, it is evaluated relative
-   * to Dir.
-   */
-  path: string
-  /**
-   * Args holds command line arguments, including the command as Args[0].
-   * If the Args field is empty or nil, Run uses {Path}.
-   * 
-   * In typical use, both Path and Args are set by calling Command.
-   */
-  args: Array<string>
-  /**
-   * Env specifies the environment of the process.
-   * Each entry is of the form "key=value".
-   * If Env is nil, the new process uses the current process's
-   * environment.
-   * If Env contains duplicate environment keys, only the last
-   * value in the slice for each duplicate key is used.
-   * As a special case on Windows, SYSTEMROOT is always added if
-   * missing and not explicitly set to the empty string.
-   */
-  env: Array<string>
-  /**
-   * Dir specifies the working directory of the command.
-   * If Dir is the empty string, Run runs the command in the
-   * calling process's current directory.
-   */
-  dir: string
-  /**
-   * Stdin specifies the process's standard input.
-   * 
-   * If Stdin is nil, the process reads from the null device (os.DevNull).
-   * 
-   * If Stdin is an *os.File, the process's standard input is connected
-   * directly to that file.
-   * 
-   * Otherwise, during the execution of the command a separate
-   * goroutine reads from Stdin and delivers that data to the command
-   * over a pipe. In this case, Wait does not complete until the goroutine
-   * stops copying, either because it has reached the end of Stdin
-   * (EOF or a read error), or because writing to the pipe returned an error,
-   * or because a nonzero WaitDelay was set and expired.
-   */
-  stdin: io.Reader
-  /**
-   * Stdout and Stderr specify the process's standard output and error.
-   * 
-   * If either is nil, Run connects the corresponding file descriptor
-   * to the null device (os.DevNull).
-   * 
-   * If either is an *os.File, the corresponding output from the process
-   * is connected directly to that file.
-   * 
-   * Otherwise, during the execution of the command a separate goroutine
-   * reads from the process over a pipe and delivers that data to the
-   * corresponding Writer. In this case, Wait does not complete until the
-   * goroutine reaches EOF or encounters an error or a nonzero WaitDelay
-   * expires.
-   * 
-   * If Stdout and Stderr are the same writer, and have a type that can
-   * be compared with ==, at most one goroutine at a time will call Write.
-   */
-  stdout: io.Writer
-  stderr: io.Writer
-  /**
-   * ExtraFiles specifies additional open files to be inherited by the
-   * new process. It does not include standard input, standard output, or
-   * standard error. If non-nil, entry i becomes file descriptor 3+i.
-   * 
-   * ExtraFiles is not supported on Windows.
-   */
-  extraFiles: Array<(os.File | undefined)>
-  /**
-   * SysProcAttr holds optional, operating system-specific attributes.
-   * Run passes it to os.StartProcess as the os.ProcAttr's Sys field.
-   */
-  sysProcAttr?: syscall.SysProcAttr
-  /**
-   * Process is the underlying process, once started.
-   */
-  process?: os.Process
-  /**
-   * ProcessState contains information about an exited process.
-   * If the process was started successfully, Wait or Run will
-   * populate its ProcessState when the command completes.
-   */
-  processState?: os.ProcessState
-  err: Error // LookPath error, if any.
-  /**
-   * If Cancel is non-nil, the command must have been created with
-   * CommandContext and Cancel will be called when the command's
-   * Context is done. By default, CommandContext sets Cancel to
-   * call the Kill method on the command's Process.
-   * 
-   * Typically a custom Cancel will send a signal to the command's
-   * Process, but it may instead take other actions to initiate cancellation,
-   * such as closing a stdin or stdout pipe or sending a shutdown request on a
-   * network socket.
-   * 
-   * If the command exits with a success status after Cancel is
-   * called, and Cancel does not return an error equivalent to
-   * os.ErrProcessDone, then Wait and similar methods will return a non-nil
-   * error: either an error wrapping the one returned by Cancel,
-   * or the error from the Context.
-   * (If the command exits with a non-success status, or Cancel
-   * returns an error that wraps os.ErrProcessDone, Wait and similar methods
-   * continue to return the command's usual exit status.)
-   * 
-   * If Cancel is set to nil, nothing will happen immediately when the command's
-   * Context is done, but a nonzero WaitDelay will still take effect. That may
-   * be useful, for example, to work around deadlocks in commands that do not
-   * support shutdown signals but are expected to always finish quickly.
-   * 
-   * Cancel will not be called if Start returns a non-nil error.
-   */
-  cancel: () => void
-  /**
-   * If WaitDelay is non-zero, it bounds the time spent waiting on two sources
-   * of unexpected delay in Wait: a child process that fails to exit after the
-   * associated Context is canceled, and a child process that exits but leaves
-   * its I/O pipes unclosed.
-   * 
-   * The WaitDelay timer starts when either the associated Context is done or a
-   * call to Wait observes that the child process has exited, whichever occurs
-   * first. When the delay has elapsed, the command shuts down the child process
-   * and/or its I/O pipes.
-   * 
-   * If the child process has failed to exit — perhaps because it ignored or
-   * failed to receive a shutdown signal from a Cancel function, or because no
-   * Cancel function was set — then it will be terminated using os.Process.Kill.
-   * 
-   * Then, if the I/O pipes communicating with the child process are still open,
-   * those pipes are closed in order to unblock any goroutines currently blocked
-   * on Read or Write calls.
-   * 
-   * If pipes are closed due to WaitDelay, no Cancel call has occurred,
-   * and the command has otherwise exited with a successful status, Wait and
-   * similar methods will return ErrWaitDelay instead of nil.
-   * 
-   * If WaitDelay is zero (the default), I/O pipes will be read until EOF,
-   * which might not occur until orphaned subprocesses of the command have
-   * also closed their descriptors for the pipes.
-   */
-  waitDelay: time.Duration
- }
- interface Cmd {
-  /**
-   * String returns a human-readable description of c.
-   * It is intended only for debugging.
-   * In particular, it is not suitable for use as input to a shell.
-   * The output of String may vary across Go releases.
-   */
-  string(): string
- }
- interface Cmd {
-  /**
-   * Run starts the specified command and waits for it to complete.
-   * 
-   * The returned error is nil if the command runs, has no problems
-   * copying stdin, stdout, and stderr, and exits with a zero exit
-   * status.
-   * 
-   * If the command starts but does not complete successfully, the error is of
-   * type *ExitError. Other error types may be returned for other situations.
-   * 
-   * If the calling goroutine has locked the operating system thread
-   * with runtime.LockOSThread and modified any inheritable OS-level
-   * thread state (for example, Linux or Plan 9 name spaces), the new
-   * process will inherit the caller's thread state.
-   */
-  run(): void
- }
- interface Cmd {
-  /**
-   * Start starts the specified command but does not wait for it to complete.
-   * 
-   * If Start returns successfully, the c.Process field will be set.
-   * 
-   * After a successful call to Start the Wait method must be called in
-   * order to release associated system resources.
-   */
-  start(): void
- }
- interface Cmd {
-  /**
-   * Wait waits for the command to exit and waits for any copying to
-   * stdin or copying from stdout or stderr to complete.
-   * 
-   * The command must have been started by Start.
-   * 
-   * The returned error is nil if the command runs, has no problems
-   * copying stdin, stdout, and stderr, and exits with a zero exit
-   * status.
-   * 
-   * If the command fails to run or doesn't complete successfully, the
-   * error is of type *ExitError. Other error types may be
-   * returned for I/O problems.
-   * 
-   * If any of c.Stdin, c.Stdout or c.Stderr are not an *os.File, Wait also waits
-   * for the respective I/O loop copying to or from the process to complete.
-   * 
-   * Wait releases any resources associated with the Cmd.
-   */
-  wait(): void
- }
- interface Cmd {
-  /**
-   * Output runs the command and returns its standard output.
-   * Any returned error will usually be of type *ExitError.
-   * If c.Stderr was nil, Output populates ExitError.Stderr.
-   */
-  output(): string|Array<number>
- }
- interface Cmd {
-  /**
-   * CombinedOutput runs the command and returns its combined standard
-   * output and standard error.
-   */
-  combinedOutput(): string|Array<number>
- }
- interface Cmd {
-  /**
-   * StdinPipe returns a pipe that will be connected to the command's
-   * standard input when the command starts.
-   * The pipe will be closed automatically after Wait sees the command exit.
-   * A caller need only call Close to force the pipe to close sooner.
-   * For example, if the command being run will not exit until standard input
-   * is closed, the caller must close the pipe.
-   */
-  stdinPipe(): io.WriteCloser
- }
- interface Cmd {
-  /**
-   * StdoutPipe returns a pipe that will be connected to the command's
-   * standard output when the command starts.
-   * 
-   * Wait will close the pipe after seeing the command exit, so most callers
-   * need not close the pipe themselves. It is thus incorrect to call Wait
-   * before all reads from the pipe have completed.
-   * For the same reason, it is incorrect to call Run when using StdoutPipe.
-   * See the example for idiomatic usage.
-   */
-  stdoutPipe(): io.ReadCloser
- }
- interface Cmd {
-  /**
-   * StderrPipe returns a pipe that will be connected to the command's
-   * standard error when the command starts.
-   * 
-   * Wait will close the pipe after seeing the command exit, so most callers
-   * need not close the pipe themselves. It is thus incorrect to call Wait
-   * before all reads from the pipe have completed.
-   * For the same reason, it is incorrect to use Run when using StderrPipe.
-   * See the StdoutPipe example for idiomatic usage.
-   */
-  stderrPipe(): io.ReadCloser
- }
- interface Cmd {
-  /**
-   * Environ returns a copy of the environment in which the command would be run
-   * as it is currently configured.
-   */
-  environ(): Array<string>
- }
-}
-
-/**
- * Package jwt is a Go implementation of JSON Web Tokens: http://self-issued.info/docs/draft-jones-json-web-token.html
- * 
- * See README.md for more info.
- */
-namespace jwt {
- /**
-  * MapClaims is a claims type that uses the map[string]interface{} for JSON decoding.
-  * This is the default claims type if you don't supply one
-  */
- interface MapClaims extends _TygojaDict{}
- interface MapClaims {
-  /**
-   * VerifyAudience Compares the aud claim against cmp.
-   * If required is false, this method will return true if the value matches or is unset
-   */
-  verifyAudience(cmp: string, req: boolean): boolean
- }
- interface MapClaims {
-  /**
-   * VerifyExpiresAt compares the exp claim against cmp (cmp <= exp).
-   * If req is false, it will return true, if exp is unset.
-   */
-  verifyExpiresAt(cmp: number, req: boolean): boolean
- }
- interface MapClaims {
-  /**
-   * VerifyIssuedAt compares the exp claim against cmp (cmp >= iat).
-   * If req is false, it will return true, if iat is unset.
-   */
-  verifyIssuedAt(cmp: number, req: boolean): boolean
- }
- interface MapClaims {
-  /**
-   * VerifyNotBefore compares the nbf claim against cmp (cmp >= nbf).
-   * If req is false, it will return true, if nbf is unset.
-   */
-  verifyNotBefore(cmp: number, req: boolean): boolean
- }
- interface MapClaims {
-  /**
-   * VerifyIssuer compares the iss claim against cmp.
-   * If required is false, this method will return true if the value matches or is unset
-   */
-  verifyIssuer(cmp: string, req: boolean): boolean
- }
- interface MapClaims {
-  /**
-   * Valid validates time based claims "exp, iat, nbf".
-   * There is no accounting for clock skew.
-   * As well, if any of the above claims are not in the token, it will still
-   * be considered a valid claim.
-   */
-  valid(): void
- }
 }
 
 /**
@@ -9173,7 +7905,7 @@ namespace multipart {
  * 		url.Values{"key": {"Value"}, "id": {"123"}})
  * ```
  * 
- * The caller must close the response body when finished with it:
+ * The client must close the response body when finished with it:
  * 
  * ```
  * 	resp, err := http.Get("http://example.com/")
@@ -9184,8 +7916,6 @@ namespace multipart {
  * 	body, err := io.ReadAll(resp.Body)
  * 	// ...
  * ```
- * 
- * # Clients and Transports
  * 
  * For control over HTTP client headers, redirect policy, and other
  * settings, create a Client:
@@ -9221,8 +7951,6 @@ namespace multipart {
  * Clients and Transports are safe for concurrent use by multiple
  * goroutines and for efficiency should only be created once and re-used.
  * 
- * # Servers
- * 
  * ListenAndServe starts an HTTP server with a given address and handler.
  * The handler is usually nil, which means to use DefaultServeMux.
  * Handle and HandleFunc add handlers to DefaultServeMux:
@@ -9251,13 +7979,11 @@ namespace multipart {
  * 	log.Fatal(s.ListenAndServe())
  * ```
  * 
- * # HTTP/2
- * 
  * Starting with Go 1.6, the http package has transparent support for the
  * HTTP/2 protocol when using HTTPS. Programs that must disable HTTP/2
  * can do so by setting Transport.TLSNextProto (for clients) or
  * Server.TLSNextProto (for servers) to a non-nil, empty
- * map. Alternatively, the following GODEBUG settings are
+ * map. Alternatively, the following GODEBUG environment variables are
  * currently supported:
  * 
  * ```
@@ -9267,7 +7993,9 @@ namespace multipart {
  * 	GODEBUG=http2debug=2   # ... even more verbose, with frame dumps
  * ```
  * 
- * Please report any issues before disabling HTTP/2 support: https://golang.org/s/http2bug
+ * The GODEBUG variables are not covered by Go's API compatibility
+ * promise. Please report any issues before disabling HTTP/2
+ * support: https://golang.org/s/http2bug
  * 
  * The http package's Transport and Server both automatically enable
  * HTTP/2 support for simple configurations. To enable HTTP/2 for more
@@ -9534,7 +8262,7 @@ namespace http {
  interface Request {
   /**
    * Context returns the request's context. To change the context, use
-   * Clone or WithContext.
+   * WithContext.
    * 
    * The returned context is always non-nil; it defaults to the
    * background context.
@@ -9557,9 +8285,11 @@ namespace http {
    * sending the request, and reading the response headers and body.
    * 
    * To create a new request with a context, use NewRequestWithContext.
-   * To make a deep copy of a request with a new context, use Request.Clone.
+   * To change the context of a request, such as an incoming request you
+   * want to modify before sending back out, use Request.Clone. Between
+   * those two uses, it's rare to need WithContext.
    */
-  withContext(ctx: context.Context): (Request)
+  withContext(ctx: context.Context): (Request | undefined)
  }
  interface Request {
   /**
@@ -9570,7 +8300,7 @@ namespace http {
    * lifetime of a request and its response: obtaining a connection,
    * sending the request, and reading the response headers and body.
    */
-  clone(ctx: context.Context): (Request)
+  clone(ctx: context.Context): (Request | undefined)
  }
  interface Request {
   /**
@@ -9598,7 +8328,7 @@ namespace http {
    * If multiple cookies match the given name, only one cookie will
    * be returned.
    */
-  cookie(name: string): (Cookie)
+  cookie(name: string): (Cookie | undefined)
  }
  interface Request {
   /**
@@ -9631,7 +8361,7 @@ namespace http {
    * Use this function instead of ParseMultipartForm to
    * process the request body as a stream.
    */
-  multipartReader(): (multipart.Reader)
+  multipartReader(): (multipart.Reader | undefined)
  }
  interface Request {
   /**
@@ -9752,7 +8482,7 @@ namespace http {
    * FormFile returns the first file for the provided form key.
    * FormFile calls ParseMultipartForm and ParseForm if necessary.
    */
-  formFile(key: string): [multipart.File, (multipart.FileHeader)]
+  formFile(key: string): [multipart.File, (multipart.FileHeader | undefined)]
  }
  /**
   * A ResponseWriter interface is used by an HTTP handler to
@@ -9845,11 +8575,6 @@ namespace http {
    */
   addr: string
   handler: Handler // handler to invoke, http.DefaultServeMux if nil
-  /**
-   * DisableGeneralOptionsHandler, if true, passes "OPTIONS *" requests to the Handler,
-   * otherwise responds with 200 OK and Content-Length: 0.
-   */
-  disableGeneralOptionsHandler: boolean
   /**
    * TLSConfig optionally provides a TLS configuration for use
    * by ServeTLS and ListenAndServeTLS. Note that this value is
@@ -10072,6 +8797,649 @@ namespace http {
 }
 
 /**
+ * Package sql provides a generic interface around SQL (or SQL-like)
+ * databases.
+ * 
+ * The sql package must be used in conjunction with a database driver.
+ * See https://golang.org/s/sqldrivers for a list of drivers.
+ * 
+ * Drivers that do not support context cancellation will not return until
+ * after the query is completed.
+ * 
+ * For usage examples, see the wiki page at
+ * https://golang.org/s/sqlwiki.
+ */
+namespace sql {
+ /**
+  * TxOptions holds the transaction options to be used in DB.BeginTx.
+  */
+ interface TxOptions {
+  /**
+   * Isolation is the transaction isolation level.
+   * If zero, the driver or database's default level is used.
+   */
+  isolation: IsolationLevel
+  readOnly: boolean
+ }
+ /**
+  * DB is a database handle representing a pool of zero or more
+  * underlying connections. It's safe for concurrent use by multiple
+  * goroutines.
+  * 
+  * The sql package creates and frees connections automatically; it
+  * also maintains a free pool of idle connections. If the database has
+  * a concept of per-connection state, such state can be reliably observed
+  * within a transaction (Tx) or connection (Conn). Once DB.Begin is called, the
+  * returned Tx is bound to a single connection. Once Commit or
+  * Rollback is called on the transaction, that transaction's
+  * connection is returned to DB's idle connection pool. The pool size
+  * can be controlled with SetMaxIdleConns.
+  */
+ interface DB {
+ }
+ interface DB {
+  /**
+   * PingContext verifies a connection to the database is still alive,
+   * establishing a connection if necessary.
+   */
+  pingContext(ctx: context.Context): void
+ }
+ interface DB {
+  /**
+   * Ping verifies a connection to the database is still alive,
+   * establishing a connection if necessary.
+   * 
+   * Ping uses context.Background internally; to specify the context, use
+   * PingContext.
+   */
+  ping(): void
+ }
+ interface DB {
+  /**
+   * Close closes the database and prevents new queries from starting.
+   * Close then waits for all queries that have started processing on the server
+   * to finish.
+   * 
+   * It is rare to Close a DB, as the DB handle is meant to be
+   * long-lived and shared between many goroutines.
+   */
+  close(): void
+ }
+ interface DB {
+  /**
+   * SetMaxIdleConns sets the maximum number of connections in the idle
+   * connection pool.
+   * 
+   * If MaxOpenConns is greater than 0 but less than the new MaxIdleConns,
+   * then the new MaxIdleConns will be reduced to match the MaxOpenConns limit.
+   * 
+   * If n <= 0, no idle connections are retained.
+   * 
+   * The default max idle connections is currently 2. This may change in
+   * a future release.
+   */
+  setMaxIdleConns(n: number): void
+ }
+ interface DB {
+  /**
+   * SetMaxOpenConns sets the maximum number of open connections to the database.
+   * 
+   * If MaxIdleConns is greater than 0 and the new MaxOpenConns is less than
+   * MaxIdleConns, then MaxIdleConns will be reduced to match the new
+   * MaxOpenConns limit.
+   * 
+   * If n <= 0, then there is no limit on the number of open connections.
+   * The default is 0 (unlimited).
+   */
+  setMaxOpenConns(n: number): void
+ }
+ interface DB {
+  /**
+   * SetConnMaxLifetime sets the maximum amount of time a connection may be reused.
+   * 
+   * Expired connections may be closed lazily before reuse.
+   * 
+   * If d <= 0, connections are not closed due to a connection's age.
+   */
+  setConnMaxLifetime(d: time.Duration): void
+ }
+ interface DB {
+  /**
+   * SetConnMaxIdleTime sets the maximum amount of time a connection may be idle.
+   * 
+   * Expired connections may be closed lazily before reuse.
+   * 
+   * If d <= 0, connections are not closed due to a connection's idle time.
+   */
+  setConnMaxIdleTime(d: time.Duration): void
+ }
+ interface DB {
+  /**
+   * Stats returns database statistics.
+   */
+  stats(): DBStats
+ }
+ interface DB {
+  /**
+   * PrepareContext creates a prepared statement for later queries or executions.
+   * Multiple queries or executions may be run concurrently from the
+   * returned statement.
+   * The caller must call the statement's Close method
+   * when the statement is no longer needed.
+   * 
+   * The provided context is used for the preparation of the statement, not for the
+   * execution of the statement.
+   */
+  prepareContext(ctx: context.Context, query: string): (Stmt | undefined)
+ }
+ interface DB {
+  /**
+   * Prepare creates a prepared statement for later queries or executions.
+   * Multiple queries or executions may be run concurrently from the
+   * returned statement.
+   * The caller must call the statement's Close method
+   * when the statement is no longer needed.
+   * 
+   * Prepare uses context.Background internally; to specify the context, use
+   * PrepareContext.
+   */
+  prepare(query: string): (Stmt | undefined)
+ }
+ interface DB {
+  /**
+   * ExecContext executes a query without returning any rows.
+   * The args are for any placeholder parameters in the query.
+   */
+  execContext(ctx: context.Context, query: string, ...args: any[]): Result
+ }
+ interface DB {
+  /**
+   * Exec executes a query without returning any rows.
+   * The args are for any placeholder parameters in the query.
+   * 
+   * Exec uses context.Background internally; to specify the context, use
+   * ExecContext.
+   */
+  exec(query: string, ...args: any[]): Result
+ }
+ interface DB {
+  /**
+   * QueryContext executes a query that returns rows, typically a SELECT.
+   * The args are for any placeholder parameters in the query.
+   */
+  queryContext(ctx: context.Context, query: string, ...args: any[]): (Rows | undefined)
+ }
+ interface DB {
+  /**
+   * Query executes a query that returns rows, typically a SELECT.
+   * The args are for any placeholder parameters in the query.
+   * 
+   * Query uses context.Background internally; to specify the context, use
+   * QueryContext.
+   */
+  query(query: string, ...args: any[]): (Rows | undefined)
+ }
+ interface DB {
+  /**
+   * QueryRowContext executes a query that is expected to return at most one row.
+   * QueryRowContext always returns a non-nil value. Errors are deferred until
+   * Row's Scan method is called.
+   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
+   * Otherwise, the *Row's Scan scans the first selected row and discards
+   * the rest.
+   */
+  queryRowContext(ctx: context.Context, query: string, ...args: any[]): (Row | undefined)
+ }
+ interface DB {
+  /**
+   * QueryRow executes a query that is expected to return at most one row.
+   * QueryRow always returns a non-nil value. Errors are deferred until
+   * Row's Scan method is called.
+   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
+   * Otherwise, the *Row's Scan scans the first selected row and discards
+   * the rest.
+   * 
+   * QueryRow uses context.Background internally; to specify the context, use
+   * QueryRowContext.
+   */
+  queryRow(query: string, ...args: any[]): (Row | undefined)
+ }
+ interface DB {
+  /**
+   * BeginTx starts a transaction.
+   * 
+   * The provided context is used until the transaction is committed or rolled back.
+   * If the context is canceled, the sql package will roll back
+   * the transaction. Tx.Commit will return an error if the context provided to
+   * BeginTx is canceled.
+   * 
+   * The provided TxOptions is optional and may be nil if defaults should be used.
+   * If a non-default isolation level is used that the driver doesn't support,
+   * an error will be returned.
+   */
+  beginTx(ctx: context.Context, opts: TxOptions): (Tx | undefined)
+ }
+ interface DB {
+  /**
+   * Begin starts a transaction. The default isolation level is dependent on
+   * the driver.
+   * 
+   * Begin uses context.Background internally; to specify the context, use
+   * BeginTx.
+   */
+  begin(): (Tx | undefined)
+ }
+ interface DB {
+  /**
+   * Driver returns the database's underlying driver.
+   */
+  driver(): any
+ }
+ interface DB {
+  /**
+   * Conn returns a single connection by either opening a new connection
+   * or returning an existing connection from the connection pool. Conn will
+   * block until either a connection is returned or ctx is canceled.
+   * Queries run on the same Conn will be run in the same database session.
+   * 
+   * Every Conn must be returned to the database pool after use by
+   * calling Conn.Close.
+   */
+  conn(ctx: context.Context): (Conn | undefined)
+ }
+ /**
+  * Tx is an in-progress database transaction.
+  * 
+  * A transaction must end with a call to Commit or Rollback.
+  * 
+  * After a call to Commit or Rollback, all operations on the
+  * transaction fail with ErrTxDone.
+  * 
+  * The statements prepared for a transaction by calling
+  * the transaction's Prepare or Stmt methods are closed
+  * by the call to Commit or Rollback.
+  */
+ interface Tx {
+ }
+ interface Tx {
+  /**
+   * Commit commits the transaction.
+   */
+  commit(): void
+ }
+ interface Tx {
+  /**
+   * Rollback aborts the transaction.
+   */
+  rollback(): void
+ }
+ interface Tx {
+  /**
+   * PrepareContext creates a prepared statement for use within a transaction.
+   * 
+   * The returned statement operates within the transaction and will be closed
+   * when the transaction has been committed or rolled back.
+   * 
+   * To use an existing prepared statement on this transaction, see Tx.Stmt.
+   * 
+   * The provided context will be used for the preparation of the context, not
+   * for the execution of the returned statement. The returned statement
+   * will run in the transaction context.
+   */
+  prepareContext(ctx: context.Context, query: string): (Stmt | undefined)
+ }
+ interface Tx {
+  /**
+   * Prepare creates a prepared statement for use within a transaction.
+   * 
+   * The returned statement operates within the transaction and will be closed
+   * when the transaction has been committed or rolled back.
+   * 
+   * To use an existing prepared statement on this transaction, see Tx.Stmt.
+   * 
+   * Prepare uses context.Background internally; to specify the context, use
+   * PrepareContext.
+   */
+  prepare(query: string): (Stmt | undefined)
+ }
+ interface Tx {
+  /**
+   * StmtContext returns a transaction-specific prepared statement from
+   * an existing statement.
+   * 
+   * Example:
+   * 
+   * ```
+   * 	updateMoney, err := db.Prepare("UPDATE balance SET money=money+? WHERE id=?")
+   * 	...
+   * 	tx, err := db.Begin()
+   * 	...
+   * 	res, err := tx.StmtContext(ctx, updateMoney).Exec(123.45, 98293203)
+   * ```
+   * 
+   * The provided context is used for the preparation of the statement, not for the
+   * execution of the statement.
+   * 
+   * The returned statement operates within the transaction and will be closed
+   * when the transaction has been committed or rolled back.
+   */
+  stmtContext(ctx: context.Context, stmt: Stmt): (Stmt | undefined)
+ }
+ interface Tx {
+  /**
+   * Stmt returns a transaction-specific prepared statement from
+   * an existing statement.
+   * 
+   * Example:
+   * 
+   * ```
+   * 	updateMoney, err := db.Prepare("UPDATE balance SET money=money+? WHERE id=?")
+   * 	...
+   * 	tx, err := db.Begin()
+   * 	...
+   * 	res, err := tx.Stmt(updateMoney).Exec(123.45, 98293203)
+   * ```
+   * 
+   * The returned statement operates within the transaction and will be closed
+   * when the transaction has been committed or rolled back.
+   * 
+   * Stmt uses context.Background internally; to specify the context, use
+   * StmtContext.
+   */
+  stmt(stmt: Stmt): (Stmt | undefined)
+ }
+ interface Tx {
+  /**
+   * ExecContext executes a query that doesn't return rows.
+   * For example: an INSERT and UPDATE.
+   */
+  execContext(ctx: context.Context, query: string, ...args: any[]): Result
+ }
+ interface Tx {
+  /**
+   * Exec executes a query that doesn't return rows.
+   * For example: an INSERT and UPDATE.
+   * 
+   * Exec uses context.Background internally; to specify the context, use
+   * ExecContext.
+   */
+  exec(query: string, ...args: any[]): Result
+ }
+ interface Tx {
+  /**
+   * QueryContext executes a query that returns rows, typically a SELECT.
+   */
+  queryContext(ctx: context.Context, query: string, ...args: any[]): (Rows | undefined)
+ }
+ interface Tx {
+  /**
+   * Query executes a query that returns rows, typically a SELECT.
+   * 
+   * Query uses context.Background internally; to specify the context, use
+   * QueryContext.
+   */
+  query(query: string, ...args: any[]): (Rows | undefined)
+ }
+ interface Tx {
+  /**
+   * QueryRowContext executes a query that is expected to return at most one row.
+   * QueryRowContext always returns a non-nil value. Errors are deferred until
+   * Row's Scan method is called.
+   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
+   * Otherwise, the *Row's Scan scans the first selected row and discards
+   * the rest.
+   */
+  queryRowContext(ctx: context.Context, query: string, ...args: any[]): (Row | undefined)
+ }
+ interface Tx {
+  /**
+   * QueryRow executes a query that is expected to return at most one row.
+   * QueryRow always returns a non-nil value. Errors are deferred until
+   * Row's Scan method is called.
+   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
+   * Otherwise, the *Row's Scan scans the first selected row and discards
+   * the rest.
+   * 
+   * QueryRow uses context.Background internally; to specify the context, use
+   * QueryRowContext.
+   */
+  queryRow(query: string, ...args: any[]): (Row | undefined)
+ }
+ /**
+  * Stmt is a prepared statement.
+  * A Stmt is safe for concurrent use by multiple goroutines.
+  * 
+  * If a Stmt is prepared on a Tx or Conn, it will be bound to a single
+  * underlying connection forever. If the Tx or Conn closes, the Stmt will
+  * become unusable and all operations will return an error.
+  * If a Stmt is prepared on a DB, it will remain usable for the lifetime of the
+  * DB. When the Stmt needs to execute on a new underlying connection, it will
+  * prepare itself on the new connection automatically.
+  */
+ interface Stmt {
+ }
+ interface Stmt {
+  /**
+   * ExecContext executes a prepared statement with the given arguments and
+   * returns a Result summarizing the effect of the statement.
+   */
+  execContext(ctx: context.Context, ...args: any[]): Result
+ }
+ interface Stmt {
+  /**
+   * Exec executes a prepared statement with the given arguments and
+   * returns a Result summarizing the effect of the statement.
+   * 
+   * Exec uses context.Background internally; to specify the context, use
+   * ExecContext.
+   */
+  exec(...args: any[]): Result
+ }
+ interface Stmt {
+  /**
+   * QueryContext executes a prepared query statement with the given arguments
+   * and returns the query results as a *Rows.
+   */
+  queryContext(ctx: context.Context, ...args: any[]): (Rows | undefined)
+ }
+ interface Stmt {
+  /**
+   * Query executes a prepared query statement with the given arguments
+   * and returns the query results as a *Rows.
+   * 
+   * Query uses context.Background internally; to specify the context, use
+   * QueryContext.
+   */
+  query(...args: any[]): (Rows | undefined)
+ }
+ interface Stmt {
+  /**
+   * QueryRowContext executes a prepared query statement with the given arguments.
+   * If an error occurs during the execution of the statement, that error will
+   * be returned by a call to Scan on the returned *Row, which is always non-nil.
+   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
+   * Otherwise, the *Row's Scan scans the first selected row and discards
+   * the rest.
+   */
+  queryRowContext(ctx: context.Context, ...args: any[]): (Row | undefined)
+ }
+ interface Stmt {
+  /**
+   * QueryRow executes a prepared query statement with the given arguments.
+   * If an error occurs during the execution of the statement, that error will
+   * be returned by a call to Scan on the returned *Row, which is always non-nil.
+   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
+   * Otherwise, the *Row's Scan scans the first selected row and discards
+   * the rest.
+   * 
+   * Example usage:
+   * 
+   * ```
+   * 	var name string
+   * 	err := nameByUseridStmt.QueryRow(id).Scan(&name)
+   * ```
+   * 
+   * QueryRow uses context.Background internally; to specify the context, use
+   * QueryRowContext.
+   */
+  queryRow(...args: any[]): (Row | undefined)
+ }
+ interface Stmt {
+  /**
+   * Close closes the statement.
+   */
+  close(): void
+ }
+ /**
+  * Rows is the result of a query. Its cursor starts before the first row
+  * of the result set. Use Next to advance from row to row.
+  */
+ interface Rows {
+ }
+ interface Rows {
+  /**
+   * Next prepares the next result row for reading with the Scan method. It
+   * returns true on success, or false if there is no next result row or an error
+   * happened while preparing it. Err should be consulted to distinguish between
+   * the two cases.
+   * 
+   * Every call to Scan, even the first one, must be preceded by a call to Next.
+   */
+  next(): boolean
+ }
+ interface Rows {
+  /**
+   * NextResultSet prepares the next result set for reading. It reports whether
+   * there is further result sets, or false if there is no further result set
+   * or if there is an error advancing to it. The Err method should be consulted
+   * to distinguish between the two cases.
+   * 
+   * After calling NextResultSet, the Next method should always be called before
+   * scanning. If there are further result sets they may not have rows in the result
+   * set.
+   */
+  nextResultSet(): boolean
+ }
+ interface Rows {
+  /**
+   * Err returns the error, if any, that was encountered during iteration.
+   * Err may be called after an explicit or implicit Close.
+   */
+  err(): void
+ }
+ interface Rows {
+  /**
+   * Columns returns the column names.
+   * Columns returns an error if the rows are closed.
+   */
+  columns(): Array<string>
+ }
+ interface Rows {
+  /**
+   * ColumnTypes returns column information such as column type, length,
+   * and nullable. Some information may not be available from some drivers.
+   */
+  columnTypes(): Array<(ColumnType | undefined)>
+ }
+ interface Rows {
+  /**
+   * Scan copies the columns in the current row into the values pointed
+   * at by dest. The number of values in dest must be the same as the
+   * number of columns in Rows.
+   * 
+   * Scan converts columns read from the database into the following
+   * common Go types and special types provided by the sql package:
+   * 
+   * ```
+   * 	*string
+   * 	*[]byte
+   * 	*int, *int8, *int16, *int32, *int64
+   * 	*uint, *uint8, *uint16, *uint32, *uint64
+   * 	*bool
+   * 	*float32, *float64
+   * 	*interface{}
+   * 	*RawBytes
+   * 	*Rows (cursor value)
+   * 	any type implementing Scanner (see Scanner docs)
+   * ```
+   * 
+   * In the most simple case, if the type of the value from the source
+   * column is an integer, bool or string type T and dest is of type *T,
+   * Scan simply assigns the value through the pointer.
+   * 
+   * Scan also converts between string and numeric types, as long as no
+   * information would be lost. While Scan stringifies all numbers
+   * scanned from numeric database columns into *string, scans into
+   * numeric types are checked for overflow. For example, a float64 with
+   * value 300 or a string with value "300" can scan into a uint16, but
+   * not into a uint8, though float64(255) or "255" can scan into a
+   * uint8. One exception is that scans of some float64 numbers to
+   * strings may lose information when stringifying. In general, scan
+   * floating point columns into *float64.
+   * 
+   * If a dest argument has type *[]byte, Scan saves in that argument a
+   * copy of the corresponding data. The copy is owned by the caller and
+   * can be modified and held indefinitely. The copy can be avoided by
+   * using an argument of type *RawBytes instead; see the documentation
+   * for RawBytes for restrictions on its use.
+   * 
+   * If an argument has type *interface{}, Scan copies the value
+   * provided by the underlying driver without conversion. When scanning
+   * from a source value of type []byte to *interface{}, a copy of the
+   * slice is made and the caller owns the result.
+   * 
+   * Source values of type time.Time may be scanned into values of type
+   * *time.Time, *interface{}, *string, or *[]byte. When converting to
+   * the latter two, time.RFC3339Nano is used.
+   * 
+   * Source values of type bool may be scanned into types *bool,
+   * *interface{}, *string, *[]byte, or *RawBytes.
+   * 
+   * For scanning into *bool, the source may be true, false, 1, 0, or
+   * string inputs parseable by strconv.ParseBool.
+   * 
+   * Scan can also convert a cursor returned from a query, such as
+   * "select cursor(select * from my_table) from dual", into a
+   * *Rows value that can itself be scanned from. The parent
+   * select query will close any cursor *Rows if the parent *Rows is closed.
+   * 
+   * If any of the first arguments implementing Scanner returns an error,
+   * that error will be wrapped in the returned error
+   */
+  scan(...dest: any[]): void
+ }
+ interface Rows {
+  /**
+   * Close closes the Rows, preventing further enumeration. If Next is called
+   * and returns false and there are no further result sets,
+   * the Rows are closed automatically and it will suffice to check the
+   * result of Err. Close is idempotent and does not affect the result of Err.
+   */
+  close(): void
+ }
+ /**
+  * A Result summarizes an executed SQL command.
+  */
+ interface Result {
+  [key:string]: any;
+  /**
+   * LastInsertId returns the integer generated by the database
+   * in response to a command. Typically this will be from an
+   * "auto increment" column when inserting a new row. Not all
+   * databases support this feature, and the syntax of such
+   * statements varies.
+   */
+  lastInsertId(): number
+  /**
+   * RowsAffected returns the number of rows affected by an
+   * update, insert, or delete. Not every database or database
+   * driver may support this.
+   */
+  rowsAffected(): number
+ }
+}
+
+/**
  * Package echo implements high performance, minimalist Go web framework.
  * 
  * Example:
@@ -10121,7 +9489,7 @@ namespace echo {
   /**
    * Request returns `*http.Request`.
    */
-  request(): (http.Request)
+  request(): (http.Request | undefined)
   /**
    * SetRequest sets `*http.Request`.
    */
@@ -10133,7 +9501,7 @@ namespace echo {
   /**
    * Response returns `*Response`.
    */
-  response(): (Response)
+  response(): (Response | undefined)
   /**
    * IsTLS returns true if HTTP connection is TLS otherwise false.
    */
@@ -10215,15 +9583,15 @@ namespace echo {
   /**
    * FormFile returns the multipart form file for the provided name.
    */
-  formFile(name: string): (multipart.FileHeader)
+  formFile(name: string): (multipart.FileHeader | undefined)
   /**
    * MultipartForm returns the multipart form.
    */
-  multipartForm(): (multipart.Form)
+  multipartForm(): (multipart.Form | undefined)
   /**
    * Cookie returns the named cookie provided in the request.
    */
-  cookie(name: string): (http.Cookie)
+  cookie(name: string): (http.Cookie | undefined)
   /**
    * SetCookie adds a `Set-Cookie` header in HTTP response.
    */
@@ -10359,7 +9727,7 @@ namespace echo {
    * WARNING: Remember that Echo public fields and methods are coroutine safe ONLY when you are NOT mutating them
    * anywhere in your code after Echo server has started.
    */
-  echo(): (Echo)
+  echo(): (Echo | undefined)
  }
  // @ts-ignore
  import stdContext = context
@@ -10589,13 +9957,13 @@ namespace echo {
   /**
    * Host creates a new router group for the provided host and optional host-level middleware.
    */
-  host(name: string, ...m: MiddlewareFunc[]): (Group)
+  host(name: string, ...m: MiddlewareFunc[]): (Group | undefined)
  }
  interface Echo {
   /**
    * Group creates a new router group with prefix and optional group-level middleware.
    */
-  group(prefix: string, ...m: MiddlewareFunc[]): (Group)
+  group(prefix: string, ...m: MiddlewareFunc[]): (Group | undefined)
  }
  interface Echo {
   /**
@@ -10644,6 +10012,378 @@ namespace echo {
    * ```
    */
   start(address: string): void
+ }
+}
+
+/**
+ * Package exec runs external commands. It wraps os.StartProcess to make it
+ * easier to remap stdin and stdout, connect I/O with pipes, and do other
+ * adjustments.
+ * 
+ * Unlike the "system" library call from C and other languages, the
+ * os/exec package intentionally does not invoke the system shell and
+ * does not expand any glob patterns or handle other expansions,
+ * pipelines, or redirections typically done by shells. The package
+ * behaves more like C's "exec" family of functions. To expand glob
+ * patterns, either call the shell directly, taking care to escape any
+ * dangerous input, or use the path/filepath package's Glob function.
+ * To expand environment variables, use package os's ExpandEnv.
+ * 
+ * Note that the examples in this package assume a Unix system.
+ * They may not run on Windows, and they do not run in the Go Playground
+ * used by golang.org and godoc.org.
+ * 
+ * # Executables in the current directory
+ * 
+ * The functions Command and LookPath look for a program
+ * in the directories listed in the current path, following the
+ * conventions of the host operating system.
+ * Operating systems have for decades included the current
+ * directory in this search, sometimes implicitly and sometimes
+ * configured explicitly that way by default.
+ * Modern practice is that including the current directory
+ * is usually unexpected and often leads to security problems.
+ * 
+ * To avoid those security problems, as of Go 1.19, this package will not resolve a program
+ * using an implicit or explicit path entry relative to the current directory.
+ * That is, if you run exec.LookPath("go"), it will not successfully return
+ * ./go on Unix nor .\go.exe on Windows, no matter how the path is configured.
+ * Instead, if the usual path algorithms would result in that answer,
+ * these functions return an error err satisfying errors.Is(err, ErrDot).
+ * 
+ * For example, consider these two program snippets:
+ * 
+ * ```
+ * 	path, err := exec.LookPath("prog")
+ * 	if err != nil {
+ * 		log.Fatal(err)
+ * 	}
+ * 	use(path)
+ * ```
+ * 
+ * and
+ * 
+ * ```
+ * 	cmd := exec.Command("prog")
+ * 	if err := cmd.Run(); err != nil {
+ * 		log.Fatal(err)
+ * 	}
+ * ```
+ * 
+ * These will not find and run ./prog or .\prog.exe,
+ * no matter how the current path is configured.
+ * 
+ * Code that always wants to run a program from the current directory
+ * can be rewritten to say "./prog" instead of "prog".
+ * 
+ * Code that insists on including results from relative path entries
+ * can instead override the error using an errors.Is check:
+ * 
+ * ```
+ * 	path, err := exec.LookPath("prog")
+ * 	if errors.Is(err, exec.ErrDot) {
+ * 		err = nil
+ * 	}
+ * 	if err != nil {
+ * 		log.Fatal(err)
+ * 	}
+ * 	use(path)
+ * ```
+ * 
+ * and
+ * 
+ * ```
+ * 	cmd := exec.Command("prog")
+ * 	if errors.Is(cmd.Err, exec.ErrDot) {
+ * 		cmd.Err = nil
+ * 	}
+ * 	if err := cmd.Run(); err != nil {
+ * 		log.Fatal(err)
+ * 	}
+ * ```
+ * 
+ * Setting the environment variable GODEBUG=execerrdot=0
+ * disables generation of ErrDot entirely, temporarily restoring the pre-Go 1.19
+ * behavior for programs that are unable to apply more targeted fixes.
+ * A future version of Go may remove support for this variable.
+ * 
+ * Before adding such overrides, make sure you understand the
+ * security implications of doing so.
+ * See https://go.dev/blog/path-security for more information.
+ */
+namespace exec {
+ /**
+  * Cmd represents an external command being prepared or run.
+  * 
+  * A Cmd cannot be reused after calling its Run, Output or CombinedOutput
+  * methods.
+  */
+ interface Cmd {
+  /**
+   * Path is the path of the command to run.
+   * 
+   * This is the only field that must be set to a non-zero
+   * value. If Path is relative, it is evaluated relative
+   * to Dir.
+   */
+  path: string
+  /**
+   * Args holds command line arguments, including the command as Args[0].
+   * If the Args field is empty or nil, Run uses {Path}.
+   * 
+   * In typical use, both Path and Args are set by calling Command.
+   */
+  args: Array<string>
+  /**
+   * Env specifies the environment of the process.
+   * Each entry is of the form "key=value".
+   * If Env is nil, the new process uses the current process's
+   * environment.
+   * If Env contains duplicate environment keys, only the last
+   * value in the slice for each duplicate key is used.
+   * As a special case on Windows, SYSTEMROOT is always added if
+   * missing and not explicitly set to the empty string.
+   */
+  env: Array<string>
+  /**
+   * Dir specifies the working directory of the command.
+   * If Dir is the empty string, Run runs the command in the
+   * calling process's current directory.
+   */
+  dir: string
+  /**
+   * Stdin specifies the process's standard input.
+   * 
+   * If Stdin is nil, the process reads from the null device (os.DevNull).
+   * 
+   * If Stdin is an *os.File, the process's standard input is connected
+   * directly to that file.
+   * 
+   * Otherwise, during the execution of the command a separate
+   * goroutine reads from Stdin and delivers that data to the command
+   * over a pipe. In this case, Wait does not complete until the goroutine
+   * stops copying, either because it has reached the end of Stdin
+   * (EOF or a read error) or because writing to the pipe returned an error.
+   */
+  stdin: io.Reader
+  /**
+   * Stdout and Stderr specify the process's standard output and error.
+   * 
+   * If either is nil, Run connects the corresponding file descriptor
+   * to the null device (os.DevNull).
+   * 
+   * If either is an *os.File, the corresponding output from the process
+   * is connected directly to that file.
+   * 
+   * Otherwise, during the execution of the command a separate goroutine
+   * reads from the process over a pipe and delivers that data to the
+   * corresponding Writer. In this case, Wait does not complete until the
+   * goroutine reaches EOF or encounters an error.
+   * 
+   * If Stdout and Stderr are the same writer, and have a type that can
+   * be compared with ==, at most one goroutine at a time will call Write.
+   */
+  stdout: io.Writer
+  stderr: io.Writer
+  /**
+   * ExtraFiles specifies additional open files to be inherited by the
+   * new process. It does not include standard input, standard output, or
+   * standard error. If non-nil, entry i becomes file descriptor 3+i.
+   * 
+   * ExtraFiles is not supported on Windows.
+   */
+  extraFiles: Array<(os.File | undefined)>
+  /**
+   * SysProcAttr holds optional, operating system-specific attributes.
+   * Run passes it to os.StartProcess as the os.ProcAttr's Sys field.
+   */
+  sysProcAttr?: syscall.SysProcAttr
+  /**
+   * Process is the underlying process, once started.
+   */
+  process?: os.Process
+  /**
+   * ProcessState contains information about an exited process,
+   * available after a call to Wait or Run.
+   */
+  processState?: os.ProcessState
+  err: Error // LookPath error, if any.
+ }
+ interface Cmd {
+  /**
+   * String returns a human-readable description of c.
+   * It is intended only for debugging.
+   * In particular, it is not suitable for use as input to a shell.
+   * The output of String may vary across Go releases.
+   */
+  string(): string
+ }
+ interface Cmd {
+  /**
+   * Run starts the specified command and waits for it to complete.
+   * 
+   * The returned error is nil if the command runs, has no problems
+   * copying stdin, stdout, and stderr, and exits with a zero exit
+   * status.
+   * 
+   * If the command starts but does not complete successfully, the error is of
+   * type *ExitError. Other error types may be returned for other situations.
+   * 
+   * If the calling goroutine has locked the operating system thread
+   * with runtime.LockOSThread and modified any inheritable OS-level
+   * thread state (for example, Linux or Plan 9 name spaces), the new
+   * process will inherit the caller's thread state.
+   */
+  run(): void
+ }
+ interface Cmd {
+  /**
+   * Start starts the specified command but does not wait for it to complete.
+   * 
+   * If Start returns successfully, the c.Process field will be set.
+   * 
+   * After a successful call to Start the Wait method must be called in
+   * order to release associated system resources.
+   */
+  start(): void
+ }
+ interface Cmd {
+  /**
+   * Wait waits for the command to exit and waits for any copying to
+   * stdin or copying from stdout or stderr to complete.
+   * 
+   * The command must have been started by Start.
+   * 
+   * The returned error is nil if the command runs, has no problems
+   * copying stdin, stdout, and stderr, and exits with a zero exit
+   * status.
+   * 
+   * If the command fails to run or doesn't complete successfully, the
+   * error is of type *ExitError. Other error types may be
+   * returned for I/O problems.
+   * 
+   * If any of c.Stdin, c.Stdout or c.Stderr are not an *os.File, Wait also waits
+   * for the respective I/O loop copying to or from the process to complete.
+   * 
+   * Wait releases any resources associated with the Cmd.
+   */
+  wait(): void
+ }
+ interface Cmd {
+  /**
+   * Output runs the command and returns its standard output.
+   * Any returned error will usually be of type *ExitError.
+   * If c.Stderr was nil, Output populates ExitError.Stderr.
+   */
+  output(): string|Array<number>
+ }
+ interface Cmd {
+  /**
+   * CombinedOutput runs the command and returns its combined standard
+   * output and standard error.
+   */
+  combinedOutput(): string|Array<number>
+ }
+ interface Cmd {
+  /**
+   * StdinPipe returns a pipe that will be connected to the command's
+   * standard input when the command starts.
+   * The pipe will be closed automatically after Wait sees the command exit.
+   * A caller need only call Close to force the pipe to close sooner.
+   * For example, if the command being run will not exit until standard input
+   * is closed, the caller must close the pipe.
+   */
+  stdinPipe(): io.WriteCloser
+ }
+ interface Cmd {
+  /**
+   * StdoutPipe returns a pipe that will be connected to the command's
+   * standard output when the command starts.
+   * 
+   * Wait will close the pipe after seeing the command exit, so most callers
+   * need not close the pipe themselves. It is thus incorrect to call Wait
+   * before all reads from the pipe have completed.
+   * For the same reason, it is incorrect to call Run when using StdoutPipe.
+   * See the example for idiomatic usage.
+   */
+  stdoutPipe(): io.ReadCloser
+ }
+ interface Cmd {
+  /**
+   * StderrPipe returns a pipe that will be connected to the command's
+   * standard error when the command starts.
+   * 
+   * Wait will close the pipe after seeing the command exit, so most callers
+   * need not close the pipe themselves. It is thus incorrect to call Wait
+   * before all reads from the pipe have completed.
+   * For the same reason, it is incorrect to use Run when using StderrPipe.
+   * See the StdoutPipe example for idiomatic usage.
+   */
+  stderrPipe(): io.ReadCloser
+ }
+ interface Cmd {
+  /**
+   * Environ returns a copy of the environment in which the command would be run
+   * as it is currently configured.
+   */
+  environ(): Array<string>
+ }
+}
+
+/**
+ * Package jwt is a Go implementation of JSON Web Tokens: http://self-issued.info/docs/draft-jones-json-web-token.html
+ * 
+ * See README.md for more info.
+ */
+namespace jwt {
+ /**
+  * MapClaims is a claims type that uses the map[string]interface{} for JSON decoding.
+  * This is the default claims type if you don't supply one
+  */
+ interface MapClaims extends _TygojaDict{}
+ interface MapClaims {
+  /**
+   * VerifyAudience Compares the aud claim against cmp.
+   * If required is false, this method will return true if the value matches or is unset
+   */
+  verifyAudience(cmp: string, req: boolean): boolean
+ }
+ interface MapClaims {
+  /**
+   * VerifyExpiresAt compares the exp claim against cmp (cmp <= exp).
+   * If req is false, it will return true, if exp is unset.
+   */
+  verifyExpiresAt(cmp: number, req: boolean): boolean
+ }
+ interface MapClaims {
+  /**
+   * VerifyIssuedAt compares the exp claim against cmp (cmp >= iat).
+   * If req is false, it will return true, if iat is unset.
+   */
+  verifyIssuedAt(cmp: number, req: boolean): boolean
+ }
+ interface MapClaims {
+  /**
+   * VerifyNotBefore compares the nbf claim against cmp (cmp >= nbf).
+   * If req is false, it will return true, if nbf is unset.
+   */
+  verifyNotBefore(cmp: number, req: boolean): boolean
+ }
+ interface MapClaims {
+  /**
+   * VerifyIssuer compares the iss claim against cmp.
+   * If required is false, this method will return true if the value matches or is unset
+   */
+  verifyIssuer(cmp: string, req: boolean): boolean
+ }
+ interface MapClaims {
+  /**
+   * Valid validates time based claims "exp, iat, nbf".
+   * There is no accounting for clock skew.
+   * As well, if any of the above claims are not in the token, it will still
+   * be considered a valid claim.
+   */
+  valid(): void
  }
 }
 
@@ -10977,7 +10717,7 @@ namespace schema {
   /**
    * Clone creates a deep clone of the current schema.
    */
-  clone(): (Schema)
+  clone(): (Schema | undefined)
  }
  interface Schema {
   /**
@@ -10990,13 +10730,13 @@ namespace schema {
   /**
    * GetFieldById returns a single field by its id.
    */
-  getFieldById(id: string): (SchemaField)
+  getFieldById(id: string): (SchemaField | undefined)
  }
  interface Schema {
   /**
    * GetFieldByName returns a single field by its name.
    */
-  getFieldByName(name: string): (SchemaField)
+  getFieldByName(name: string): (SchemaField | undefined)
  }
  interface Schema {
   /**
@@ -11059,8 +10799,8 @@ namespace schema {
  * Package models implements all PocketBase DB models and DTOs.
  */
 namespace models {
- type _subAByxr = BaseModel
- interface Admin extends _subAByxr {
+ type _subduAFi = BaseModel
+ interface Admin extends _subduAFi {
   avatar: number
   email: string
   tokenKey: string
@@ -11095,8 +10835,8 @@ namespace models {
  }
  // @ts-ignore
  import validation = ozzo_validation
- type _subKOTAT = BaseModel
- interface Collection extends _subKOTAT {
+ type _sublxNFI = BaseModel
+ interface Collection extends _sublxNFI {
   name: string
   type: string
   system: boolean
@@ -11189,8 +10929,8 @@ namespace models {
    */
   setOptions(typedOptions: any): void
  }
- type _subaVRDb = BaseModel
- interface ExternalAuth extends _subaVRDb {
+ type _subeBgVP = BaseModel
+ interface ExternalAuth extends _subeBgVP {
   collectionId: string
   recordId: string
   provider: string
@@ -11199,8 +10939,8 @@ namespace models {
  interface ExternalAuth {
   tableName(): string
  }
- type _subXuITe = BaseModel
- interface Record extends _subXuITe {
+ type _subpwpMl = BaseModel
+ interface Record extends _subpwpMl {
  }
  interface Record {
   /**
@@ -11212,7 +10952,7 @@ namespace models {
   /**
    * Collection returns the Collection model associated to the current Record model.
    */
-  collection(): (Collection)
+  collection(): (Collection | undefined)
  }
  interface Record {
   /**
@@ -11220,14 +10960,14 @@ namespace models {
    * with its ORIGINAL data state (aka. the initially loaded) and
    * everything else reset to the defaults.
    */
-  originalCopy(): (Record)
+  originalCopy(): (Record | undefined)
  }
  interface Record {
   /**
    * CleanCopy returns a copy of the current record model populated only
    * with its LATEST data state and everything else reset to the defaults.
    */
-  cleanCopy(): (Record)
+  cleanCopy(): (Record | undefined)
  }
  interface Record {
   /**
@@ -11346,7 +11086,7 @@ namespace models {
    * 
    * Returns nil if there is no such expand relation loaded.
    */
-  expandedOne(relField: string): (Record)
+  expandedOne(relField: string): (Record | undefined)
  }
  interface Record {
   /**
@@ -11386,7 +11126,7 @@ namespace models {
    * FindFileFieldByFile returns the first file type field for which
    * any of the record's data contains the provided filename.
    */
-  findFileFieldByFile(filename: string): (schema.SchemaField)
+  findFileFieldByFile(filename: string): (schema.SchemaField | undefined)
  }
  interface Record {
   /**
@@ -11608,10 +11348,9 @@ namespace auth {
   username: string
   email: string
   avatarUrl: string
+  rawUser: _TygojaDict
   accessToken: string
   refreshToken: string
-  expiry: types.DateTime
-  rawUser: _TygojaDict
  }
  /**
   * Provider defines a common interface for an OAuth2 client.
@@ -11626,23 +11365,6 @@ namespace auth {
    * SetContext assigns the specified context to the current provider.
    */
   setContext(ctx: context.Context): void
-  /**
-   * PKCE indicates whether the provider can use the PKCE flow.
-   */
-  pkce(): boolean
-  /**
-   * SetPKCE toggles the state whether the provider can use the PKCE flow or not.
-   */
-  setPKCE(enable: boolean): void
-  /**
-   * DisplayName usually returns provider name as it is officially written
-   * and it could be used directly in the UI.
-   */
-  displayName(): string
-  /**
-   * SetDisplayName sets the provider's display name.
-   */
-  setDisplayName(displayName: string): void
   /**
    * Scopes returns the provider access permissions that will be requested.
    */
@@ -11703,7 +11425,7 @@ namespace auth {
   /**
    * Client returns an http client using the provided token.
    */
-  client(token: oauth2.Token): (any)
+  client(token: oauth2.Token): (any | undefined)
   /**
    * BuildAuthUrl returns a URL to the provider's consent page
    * that asks for permissions for the required scopes explicitly.
@@ -11712,7 +11434,7 @@ namespace auth {
   /**
    * FetchToken converts an authorization code to token.
    */
-  fetchToken(code: string, ...opts: oauth2.AuthCodeOption[]): (oauth2.Token)
+  fetchToken(code: string, ...opts: oauth2.AuthCodeOption[]): (oauth2.Token | undefined)
   /**
    * FetchRawUserData requests and marshalizes into `result` the
    * the OAuth user api response.
@@ -11722,7 +11444,7 @@ namespace auth {
    * FetchAuthUser is similar to FetchRawUserData, but normalizes and
    * marshalizes the user api response into a standardized AuthUser struct.
    */
-  fetchAuthUser(token: oauth2.Token): (AuthUser)
+  fetchAuthUser(token: oauth2.Token): (AuthUser | undefined)
  }
 }
 
@@ -11790,14 +11512,14 @@ namespace settings {
   /**
    * Clone creates a new deep copy of the current settings.
    */
-  clone(): (Settings)
+  clone(): (Settings | undefined)
  }
  interface Settings {
   /**
    * RedactClone creates a new deep copy of the current settings,
    * while replacing the secret values with `******`.
    */
-  redactClone(): (Settings)
+  redactClone(): (Settings | undefined)
  }
  interface Settings {
   /**
@@ -11818,27 +11540,27 @@ namespace daos {
   /**
    * AdminQuery returns a new Admin select query.
    */
-  adminQuery(): (dbx.SelectQuery)
+  adminQuery(): (dbx.SelectQuery | undefined)
  }
  interface Dao {
   /**
    * FindAdminById finds the admin with the provided id.
    */
-  findAdminById(id: string): (models.Admin)
+  findAdminById(id: string): (models.Admin | undefined)
  }
  interface Dao {
   /**
    * FindAdminByEmail finds the admin with the provided email address.
    */
-  findAdminByEmail(email: string): (models.Admin)
+  findAdminByEmail(email: string): (models.Admin | undefined)
  }
  interface Dao {
   /**
-   * FindAdminByToken finds the admin associated with the provided JWT.
+   * FindAdminByToken finds the admin associated with the provided JWT token.
    * 
-   * Returns an error if the JWT is invalid or expired.
+   * Returns an error if the JWT token is invalid or expired.
    */
-  findAdminByToken(token: string, baseTokenKey: string): (models.Admin)
+  findAdminByToken(token: string, baseTokenKey: string): (models.Admin | undefined)
  }
  interface Dao {
   /**
@@ -11923,21 +11645,21 @@ namespace daos {
   /**
    * Clone returns a new Dao with the same configuration options as the current one.
    */
-  clone(): (Dao)
+  clone(): (Dao | undefined)
  }
  interface Dao {
   /**
    * WithoutHooks returns a new Dao with the same configuration options
    * as the current one, but without create/update/delete hooks.
    */
-  withoutHooks(): (Dao)
+  withoutHooks(): (Dao | undefined)
  }
  interface Dao {
   /**
    * ModelQuery creates a new preconfigured select query with preset
    * SELECT, FROM and other common fields based on the provided model.
    */
-  modelQuery(m: models.Model): (dbx.SelectQuery)
+  modelQuery(m: models.Model): (dbx.SelectQuery | undefined)
  }
  interface Dao {
   /**
@@ -11973,7 +11695,7 @@ namespace daos {
   /**
    * CollectionQuery returns a new Collection select query.
    */
-  collectionQuery(): (dbx.SelectQuery)
+  collectionQuery(): (dbx.SelectQuery | undefined)
  }
  interface Dao {
   /**
@@ -11985,7 +11707,7 @@ namespace daos {
   /**
    * FindCollectionByNameOrId finds a single collection by its name (case insensitive) or id.
    */
-  findCollectionByNameOrId(nameOrId: string): (models.Collection)
+  findCollectionByNameOrId(nameOrId: string): (models.Collection | undefined)
  }
  interface Dao {
   /**
@@ -12044,7 +11766,7 @@ namespace daos {
   /**
    * ExternalAuthQuery returns a new ExternalAuth select query.
    */
-  externalAuthQuery(): (dbx.SelectQuery)
+  externalAuthQuery(): (dbx.SelectQuery | undefined)
  }
  interface Dao {
   /**
@@ -12055,17 +11777,17 @@ namespace daos {
  }
  interface Dao {
   /**
-   * FindExternalAuthByRecordAndProvider returns the first available
-   * ExternalAuth model for the specified record data and provider.
+   * FindExternalAuthByProvider returns the first available
+   * ExternalAuth model for the specified provider and providerId.
    */
-  findExternalAuthByRecordAndProvider(authRecord: models.Record, provider: string): (models.ExternalAuth)
+  findExternalAuthByProvider(provider: string): (models.ExternalAuth | undefined)
  }
  interface Dao {
   /**
-   * FindFirstExternalAuthByExpr returns the first available
-   * ExternalAuth model that satisfies the non-nil expression.
+   * FindExternalAuthByRecordAndProvider returns the first available
+   * ExternalAuth model for the specified record data and provider.
    */
-  findFirstExternalAuthByExpr(expr: dbx.Expression): (models.ExternalAuth)
+  findExternalAuthByRecordAndProvider(authRecord: models.Record, provider: string): (models.ExternalAuth | undefined)
  }
  interface Dao {
   /**
@@ -12081,45 +11803,15 @@ namespace daos {
  }
  interface Dao {
   /**
-   * LogQuery returns a new Log select query.
-   */
-  logQuery(): (dbx.SelectQuery)
- }
- interface Dao {
-  /**
-   * FindLogById finds a single Log entry by its id.
-   */
-  findLogById(id: string): (models.Log)
- }
- interface Dao {
-  /**
-   * LogsStats returns hourly grouped requests logs statistics.
-   */
-  logsStats(expr: dbx.Expression): Array<(LogsStatsItem | undefined)>
- }
- interface Dao {
-  /**
-   * DeleteOldLogs delete all requests that are created before createdBefore.
-   */
-  deleteOldLogs(createdBefore: time.Time): void
- }
- interface Dao {
-  /**
-   * SaveLog upserts the provided Log model.
-   */
-  saveLog(log: models.Log): void
- }
- interface Dao {
-  /**
    * ParamQuery returns a new Param select query.
    */
-  paramQuery(): (dbx.SelectQuery)
+  paramQuery(): (dbx.SelectQuery | undefined)
  }
  interface Dao {
   /**
    * FindParamByKey finds the first Param model with the provided key.
    */
-  findParamByKey(key: string): (models.Param)
+  findParamByKey(key: string): (models.Param | undefined)
  }
  interface Dao {
   /**
@@ -12144,13 +11836,13 @@ namespace daos {
    * actually exists, the generated query will be created with a cancelled context
    * and will fail once an executor (Row(), One(), All(), etc.) is called.
    */
-  recordQuery(collectionModelOrIdentifier: any): (dbx.SelectQuery)
+  recordQuery(collectionModelOrIdentifier: any): (dbx.SelectQuery | undefined)
  }
  interface Dao {
   /**
    * FindRecordById finds the Record model by its id.
    */
-  findRecordById(collectionNameOrId: string, recordId: string, ...optFilters: ((q: dbx.SelectQuery) => void)[]): (models.Record)
+  findRecordById(collectionNameOrId: string, recordId: string, ...optFilters: ((q: dbx.SelectQuery) => void)[]): (models.Record | undefined)
  }
  interface Dao {
   /**
@@ -12184,7 +11876,7 @@ namespace daos {
    * FindFirstRecordByData returns the first found record matching
    * the provided key-value pair.
    */
-  findFirstRecordByData(collectionNameOrId: string, key: string, value: any): (models.Record)
+  findFirstRecordByData(collectionNameOrId: string, key: string, value: any): (models.Record | undefined)
  }
  interface Dao {
   /**
@@ -12226,7 +11918,7 @@ namespace daos {
    * 	dao.FindFirstRecordByFilter("posts", "slug={:slug} && status='public'", dbx.Params{"slug": "test"})
    * ```
    */
-  findFirstRecordByFilter(collectionNameOrId: string, filter: string, ...params: dbx.Params[]): (models.Record)
+  findFirstRecordByFilter(collectionNameOrId: string, filter: string, ...params: dbx.Params[]): (models.Record | undefined)
  }
  interface Dao {
   /**
@@ -12244,11 +11936,11 @@ namespace daos {
  }
  interface Dao {
   /**
-   * FindAuthRecordByToken finds the auth record associated with the provided JWT.
+   * FindAuthRecordByToken finds the auth record associated with the provided JWT token.
    * 
-   * Returns an error if the JWT is invalid, expired or not associated to an auth collection record.
+   * Returns an error if the JWT token is invalid, expired or not associated to an auth collection record.
    */
-  findAuthRecordByToken(token: string, baseTokenKey: string): (models.Record)
+  findAuthRecordByToken(token: string, baseTokenKey: string): (models.Record | undefined)
  }
  interface Dao {
   /**
@@ -12256,7 +11948,7 @@ namespace daos {
    * 
    * Returns an error if it is not an auth collection or the record is not found.
    */
-  findAuthRecordByEmail(collectionNameOrId: string, email: string): (models.Record)
+  findAuthRecordByEmail(collectionNameOrId: string, email: string): (models.Record | undefined)
  }
  interface Dao {
   /**
@@ -12264,7 +11956,7 @@ namespace daos {
    * 
    * Returns an error if it is not an auth collection or the record is not found.
    */
-  findAuthRecordByUsername(collectionNameOrId: string, username: string): (models.Record)
+  findAuthRecordByUsername(collectionNameOrId: string, username: string): (models.Record | undefined)
  }
  interface Dao {
   /**
@@ -12357,6 +12049,36 @@ namespace daos {
  }
  interface Dao {
   /**
+   * RequestQuery returns a new Request logs select query.
+   */
+  requestQuery(): (dbx.SelectQuery | undefined)
+ }
+ interface Dao {
+  /**
+   * FindRequestById finds a single Request log by its id.
+   */
+  findRequestById(id: string): (models.Request | undefined)
+ }
+ interface Dao {
+  /**
+   * RequestsStats returns hourly grouped requests logs statistics.
+   */
+  requestsStats(expr: dbx.Expression): Array<(RequestsStatsItem | undefined)>
+ }
+ interface Dao {
+  /**
+   * DeleteOldRequests delete all requests that are created before createdBefore.
+   */
+  deleteOldRequests(createdBefore: time.Time): void
+ }
+ interface Dao {
+  /**
+   * SaveRequest upserts the provided Request model.
+   */
+  saveRequest(request: models.Request): void
+ }
+ interface Dao {
+  /**
    * FindSettings returns and decode the serialized app settings param value.
    * 
    * The method will first try to decode the param value without decryption.
@@ -12365,7 +12087,7 @@ namespace daos {
    * 
    * Returns an error if it fails to decode the stored serialized param value.
    */
-  findSettings(...optEncryptionKey: string[]): (settings.Settings)
+  findSettings(...optEncryptionKey: string[]): (settings.Settings | undefined)
  }
  interface Dao {
   /**
@@ -12454,7 +12176,7 @@ namespace daos {
    * FindRecordByViewFile returns the original models.Record of the
    * provided view collection file.
    */
-  findRecordByViewFile(viewCollectionNameOrId: string, fileFieldName: string, filename: string): (models.Record)
+  findRecordByViewFile(viewCollectionNameOrId: string, fileFieldName: string, filename: string): (models.Record | undefined)
  }
 }
 
@@ -12477,7 +12199,7 @@ namespace core {
    * 
    * DB returns the default app database instance.
    */
-  db(): (dbx.DB)
+  db(): (dbx.DB | undefined)
   /**
    * Dao returns the default app Dao instance.
    * 
@@ -12485,7 +12207,7 @@ namespace core {
    * associated with the default app database. For example,
    * trying to access the request logs table will result in error.
    */
-  dao(): (daos.Dao)
+  dao(): (daos.Dao | undefined)
   /**
    * Deprecated:
    * This method may get removed in the near future.
@@ -12494,7 +12216,7 @@ namespace core {
    * 
    * LogsDB returns the app logs database instance.
    */
-  logsDB(): (dbx.DB)
+  logsDB(): (dbx.DB | undefined)
   /**
    * LogsDao returns the app logs Dao instance.
    * 
@@ -12502,11 +12224,7 @@ namespace core {
    * associated with the logs database. For example, trying to access
    * the users table from LogsDao will result in error.
    */
-  logsDao(): (daos.Dao)
-  /**
-   * Logger returns the active app logger.
-   */
-  logger(): (slog.Logger)
+  logsDao(): (daos.Dao | undefined)
   /**
    * DataDir returns the app data directory path.
    */
@@ -12517,25 +12235,22 @@ namespace core {
    */
   encryptionEnv(): string
   /**
-   * IsDev returns whether the app is in dev mode.
+   * IsDebug returns whether the app is in debug mode
+   * (showing more detailed error logs, executed sql statements, etc.).
    */
-  isDev(): boolean
+  isDebug(): boolean
   /**
    * Settings returns the loaded app settings.
    */
-  settings(): (settings.Settings)
+  settings(): (settings.Settings | undefined)
   /**
-   * Deprecated: Use app.Store() instead.
+   * Cache returns the app internal cache store.
    */
-  cache(): (store.Store<any>)
-  /**
-   * Store returns the app runtime store.
-   */
-  store(): (store.Store<any>)
+  cache(): (store.Store<any> | undefined)
   /**
    * SubscriptionsBroker returns the app realtime subscriptions broker instance.
    */
-  subscriptionsBroker(): (subscriptions.Broker)
+  subscriptionsBroker(): (subscriptions.Broker | undefined)
   /**
    * NewMailClient creates and returns a configured app mail client.
    */
@@ -12547,7 +12262,7 @@ namespace core {
    * NB! Make sure to call Close() on the returned result
    * after you are done working with it.
    */
-  newFilesystem(): (filesystem.System)
+  newFilesystem(): (filesystem.System | undefined)
   /**
    * NewBackupsFilesystem creates and returns a configured filesystem.System instance
    * for managing app backups.
@@ -12555,7 +12270,7 @@ namespace core {
    * NB! Make sure to call Close() on the returned result
    * after you are done working with it.
    */
-  newBackupsFilesystem(): (filesystem.System)
+  newBackupsFilesystem(): (filesystem.System | undefined)
   /**
    * RefreshSettings reinitializes and reloads the stored application settings.
    */
@@ -12609,34 +12324,34 @@ namespace core {
    * OnBeforeBootstrap hook is triggered before initializing the main
    * application resources (eg. before db open and initial settings load).
    */
-  onBeforeBootstrap(): (hook.Hook<BootstrapEvent | undefined>)
+  onBeforeBootstrap(): (hook.Hook<BootstrapEvent | undefined> | undefined)
   /**
    * OnAfterBootstrap hook is triggered after initializing the main
    * application resources (eg. after db open and initial settings load).
    */
-  onAfterBootstrap(): (hook.Hook<BootstrapEvent | undefined>)
+  onAfterBootstrap(): (hook.Hook<BootstrapEvent | undefined> | undefined)
   /**
    * OnBeforeServe hook is triggered before serving the internal router (echo),
    * allowing you to adjust its options and attach new routes or middlewares.
    */
-  onBeforeServe(): (hook.Hook<ServeEvent | undefined>)
+  onBeforeServe(): (hook.Hook<ServeEvent | undefined> | undefined)
   /**
    * OnBeforeApiError hook is triggered right before sending an error API
    * response to the client, allowing you to further modify the error data
    * or to return a completely different API response.
    */
-  onBeforeApiError(): (hook.Hook<ApiErrorEvent | undefined>)
+  onBeforeApiError(): (hook.Hook<ApiErrorEvent | undefined> | undefined)
   /**
    * OnAfterApiError hook is triggered right after sending an error API
    * response to the client.
    * It could be used to log the final API error in external services.
    */
-  onAfterApiError(): (hook.Hook<ApiErrorEvent | undefined>)
+  onAfterApiError(): (hook.Hook<ApiErrorEvent | undefined> | undefined)
   /**
    * OnTerminate hook is triggered when the app is in the process
    * of being terminated (eg. on SIGTERM signal).
    */
-  onTerminate(): (hook.Hook<TerminateEvent | undefined>)
+  onTerminate(): (hook.Hook<TerminateEvent | undefined> | undefined)
   /**
    * OnModelBeforeCreate hook is triggered before inserting a new
    * model in the DB, allowing you to modify or validate the stored data.
@@ -12645,7 +12360,7 @@ namespace core {
    * is specified, then all event handlers registered via the created hook
    * will be triggered and called only if their event data origin matches the tags.
    */
-  onModelBeforeCreate(...tags: string[]): (hook.TaggedHook<ModelEvent | undefined>)
+  onModelBeforeCreate(...tags: string[]): (hook.TaggedHook<ModelEvent | undefined> | undefined)
   /**
    * OnModelAfterCreate hook is triggered after successfully
    * inserting a new model in the DB.
@@ -12654,7 +12369,7 @@ namespace core {
    * is specified, then all event handlers registered via the created hook
    * will be triggered and called only if their event data origin matches the tags.
    */
-  onModelAfterCreate(...tags: string[]): (hook.TaggedHook<ModelEvent | undefined>)
+  onModelAfterCreate(...tags: string[]): (hook.TaggedHook<ModelEvent | undefined> | undefined)
   /**
    * OnModelBeforeUpdate hook is triggered before updating existing
    * model in the DB, allowing you to modify or validate the stored data.
@@ -12663,7 +12378,7 @@ namespace core {
    * is specified, then all event handlers registered via the created hook
    * will be triggered and called only if their event data origin matches the tags.
    */
-  onModelBeforeUpdate(...tags: string[]): (hook.TaggedHook<ModelEvent | undefined>)
+  onModelBeforeUpdate(...tags: string[]): (hook.TaggedHook<ModelEvent | undefined> | undefined)
   /**
    * OnModelAfterUpdate hook is triggered after successfully updating
    * existing model in the DB.
@@ -12672,7 +12387,7 @@ namespace core {
    * is specified, then all event handlers registered via the created hook
    * will be triggered and called only if their event data origin matches the tags.
    */
-  onModelAfterUpdate(...tags: string[]): (hook.TaggedHook<ModelEvent | undefined>)
+  onModelAfterUpdate(...tags: string[]): (hook.TaggedHook<ModelEvent | undefined> | undefined)
   /**
    * OnModelBeforeDelete hook is triggered before deleting an
    * existing model from the DB.
@@ -12681,7 +12396,7 @@ namespace core {
    * is specified, then all event handlers registered via the created hook
    * will be triggered and called only if their event data origin matches the tags.
    */
-  onModelBeforeDelete(...tags: string[]): (hook.TaggedHook<ModelEvent | undefined>)
+  onModelBeforeDelete(...tags: string[]): (hook.TaggedHook<ModelEvent | undefined> | undefined)
   /**
    * OnModelAfterDelete hook is triggered after successfully deleting an
    * existing model from the DB.
@@ -12690,18 +12405,18 @@ namespace core {
    * is specified, then all event handlers registered via the created hook
    * will be triggered and called only if their event data origin matches the tags.
    */
-  onModelAfterDelete(...tags: string[]): (hook.TaggedHook<ModelEvent | undefined>)
+  onModelAfterDelete(...tags: string[]): (hook.TaggedHook<ModelEvent | undefined> | undefined)
   /**
    * OnMailerBeforeAdminResetPasswordSend hook is triggered right
    * before sending a password reset email to an admin, allowing you
    * to inspect and customize the email message that is being sent.
    */
-  onMailerBeforeAdminResetPasswordSend(): (hook.Hook<MailerAdminEvent | undefined>)
+  onMailerBeforeAdminResetPasswordSend(): (hook.Hook<MailerAdminEvent | undefined> | undefined)
   /**
    * OnMailerAfterAdminResetPasswordSend hook is triggered after
    * admin password reset email was successfully sent.
    */
-  onMailerAfterAdminResetPasswordSend(): (hook.Hook<MailerAdminEvent | undefined>)
+  onMailerAfterAdminResetPasswordSend(): (hook.Hook<MailerAdminEvent | undefined> | undefined)
   /**
    * OnMailerBeforeRecordResetPasswordSend hook is triggered right
    * before sending a password reset email to an auth record, allowing
@@ -12711,7 +12426,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onMailerBeforeRecordResetPasswordSend(...tags: string[]): (hook.TaggedHook<MailerRecordEvent | undefined>)
+  onMailerBeforeRecordResetPasswordSend(...tags: string[]): (hook.TaggedHook<MailerRecordEvent | undefined> | undefined)
   /**
    * OnMailerAfterRecordResetPasswordSend hook is triggered after
    * an auth record password reset email was successfully sent.
@@ -12720,7 +12435,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onMailerAfterRecordResetPasswordSend(...tags: string[]): (hook.TaggedHook<MailerRecordEvent | undefined>)
+  onMailerAfterRecordResetPasswordSend(...tags: string[]): (hook.TaggedHook<MailerRecordEvent | undefined> | undefined)
   /**
    * OnMailerBeforeRecordVerificationSend hook is triggered right
    * before sending a verification email to an auth record, allowing
@@ -12730,7 +12445,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onMailerBeforeRecordVerificationSend(...tags: string[]): (hook.TaggedHook<MailerRecordEvent | undefined>)
+  onMailerBeforeRecordVerificationSend(...tags: string[]): (hook.TaggedHook<MailerRecordEvent | undefined> | undefined)
   /**
    * OnMailerAfterRecordVerificationSend hook is triggered after a
    * verification email was successfully sent to an auth record.
@@ -12739,7 +12454,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onMailerAfterRecordVerificationSend(...tags: string[]): (hook.TaggedHook<MailerRecordEvent | undefined>)
+  onMailerAfterRecordVerificationSend(...tags: string[]): (hook.TaggedHook<MailerRecordEvent | undefined> | undefined)
   /**
    * OnMailerBeforeRecordChangeEmailSend hook is triggered right before
    * sending a confirmation new address email to an auth record, allowing
@@ -12749,7 +12464,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onMailerBeforeRecordChangeEmailSend(...tags: string[]): (hook.TaggedHook<MailerRecordEvent | undefined>)
+  onMailerBeforeRecordChangeEmailSend(...tags: string[]): (hook.TaggedHook<MailerRecordEvent | undefined> | undefined)
   /**
    * OnMailerAfterRecordChangeEmailSend hook is triggered after a
    * verification email was successfully sent to an auth record.
@@ -12758,41 +12473,41 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onMailerAfterRecordChangeEmailSend(...tags: string[]): (hook.TaggedHook<MailerRecordEvent | undefined>)
+  onMailerAfterRecordChangeEmailSend(...tags: string[]): (hook.TaggedHook<MailerRecordEvent | undefined> | undefined)
   /**
    * OnRealtimeConnectRequest hook is triggered right before establishing
    * the SSE client connection.
    */
-  onRealtimeConnectRequest(): (hook.Hook<RealtimeConnectEvent | undefined>)
+  onRealtimeConnectRequest(): (hook.Hook<RealtimeConnectEvent | undefined> | undefined)
   /**
    * OnRealtimeDisconnectRequest hook is triggered on disconnected/interrupted
    * SSE client connection.
    */
-  onRealtimeDisconnectRequest(): (hook.Hook<RealtimeDisconnectEvent | undefined>)
+  onRealtimeDisconnectRequest(): (hook.Hook<RealtimeDisconnectEvent | undefined> | undefined)
   /**
-   * OnRealtimeBeforeMessageSend hook is triggered right before sending
+   * OnRealtimeBeforeMessage hook is triggered right before sending
    * an SSE message to a client.
    * 
    * Returning [hook.StopPropagation] will prevent sending the message.
    * Returning any other non-nil error will close the realtime connection.
    */
-  onRealtimeBeforeMessageSend(): (hook.Hook<RealtimeMessageEvent | undefined>)
+  onRealtimeBeforeMessageSend(): (hook.Hook<RealtimeMessageEvent | undefined> | undefined)
   /**
-   * OnRealtimeAfterMessageSend hook is triggered right after sending
+   * OnRealtimeBeforeMessage hook is triggered right after sending
    * an SSE message to a client.
    */
-  onRealtimeAfterMessageSend(): (hook.Hook<RealtimeMessageEvent | undefined>)
+  onRealtimeAfterMessageSend(): (hook.Hook<RealtimeMessageEvent | undefined> | undefined)
   /**
    * OnRealtimeBeforeSubscribeRequest hook is triggered before changing
    * the client subscriptions, allowing you to further validate and
    * modify the submitted change.
    */
-  onRealtimeBeforeSubscribeRequest(): (hook.Hook<RealtimeSubscribeEvent | undefined>)
+  onRealtimeBeforeSubscribeRequest(): (hook.Hook<RealtimeSubscribeEvent | undefined> | undefined)
   /**
    * OnRealtimeAfterSubscribeRequest hook is triggered after the client
    * subscriptions were successfully changed.
    */
-  onRealtimeAfterSubscribeRequest(): (hook.Hook<RealtimeSubscribeEvent | undefined>)
+  onRealtimeAfterSubscribeRequest(): (hook.Hook<RealtimeSubscribeEvent | undefined> | undefined)
   /**
    * OnSettingsListRequest hook is triggered on each successful
    * API Settings list request.
@@ -12800,7 +12515,7 @@ namespace core {
    * Could be used to validate or modify the response before
    * returning it to the client.
    */
-  onSettingsListRequest(): (hook.Hook<SettingsListEvent | undefined>)
+  onSettingsListRequest(): (hook.Hook<SettingsListEvent | undefined> | undefined)
   /**
    * OnSettingsBeforeUpdateRequest hook is triggered before each API
    * Settings update request (after request data load and before settings persistence).
@@ -12808,19 +12523,19 @@ namespace core {
    * Could be used to additionally validate the request data or
    * implement completely different persistence behavior.
    */
-  onSettingsBeforeUpdateRequest(): (hook.Hook<SettingsUpdateEvent | undefined>)
+  onSettingsBeforeUpdateRequest(): (hook.Hook<SettingsUpdateEvent | undefined> | undefined)
   /**
    * OnSettingsAfterUpdateRequest hook is triggered after each
    * successful API Settings update request.
    */
-  onSettingsAfterUpdateRequest(): (hook.Hook<SettingsUpdateEvent | undefined>)
+  onSettingsAfterUpdateRequest(): (hook.Hook<SettingsUpdateEvent | undefined> | undefined)
   /**
    * OnFileDownloadRequest hook is triggered before each API File download request.
    * 
    * Could be used to validate or modify the file response before
    * returning it to the client.
    */
-  onFileDownloadRequest(...tags: string[]): (hook.TaggedHook<FileDownloadEvent | undefined>)
+  onFileDownloadRequest(...tags: string[]): (hook.TaggedHook<FileDownloadEvent | undefined> | undefined)
   /**
    * OnFileBeforeTokenRequest hook is triggered before each file
    * token API request.
@@ -12832,7 +12547,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onFileBeforeTokenRequest(...tags: string[]): (hook.TaggedHook<FileTokenEvent | undefined>)
+  onFileBeforeTokenRequest(...tags: string[]): (hook.TaggedHook<FileTokenEvent | undefined> | undefined)
   /**
    * OnFileAfterTokenRequest hook is triggered after each
    * successful file token API request.
@@ -12841,19 +12556,19 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onFileAfterTokenRequest(...tags: string[]): (hook.TaggedHook<FileTokenEvent | undefined>)
+  onFileAfterTokenRequest(...tags: string[]): (hook.TaggedHook<FileTokenEvent | undefined> | undefined)
   /**
    * OnAdminsListRequest hook is triggered on each API Admins list request.
    * 
    * Could be used to validate or modify the response before returning it to the client.
    */
-  onAdminsListRequest(): (hook.Hook<AdminsListEvent | undefined>)
+  onAdminsListRequest(): (hook.Hook<AdminsListEvent | undefined> | undefined)
   /**
    * OnAdminViewRequest hook is triggered on each API Admin view request.
    * 
    * Could be used to validate or modify the response before returning it to the client.
    */
-  onAdminViewRequest(): (hook.Hook<AdminViewEvent | undefined>)
+  onAdminViewRequest(): (hook.Hook<AdminViewEvent | undefined> | undefined)
   /**
    * OnAdminBeforeCreateRequest hook is triggered before each API
    * Admin create request (after request data load and before model persistence).
@@ -12861,12 +12576,12 @@ namespace core {
    * Could be used to additionally validate the request data or implement
    * completely different persistence behavior.
    */
-  onAdminBeforeCreateRequest(): (hook.Hook<AdminCreateEvent | undefined>)
+  onAdminBeforeCreateRequest(): (hook.Hook<AdminCreateEvent | undefined> | undefined)
   /**
    * OnAdminAfterCreateRequest hook is triggered after each
    * successful API Admin create request.
    */
-  onAdminAfterCreateRequest(): (hook.Hook<AdminCreateEvent | undefined>)
+  onAdminAfterCreateRequest(): (hook.Hook<AdminCreateEvent | undefined> | undefined)
   /**
    * OnAdminBeforeUpdateRequest hook is triggered before each API
    * Admin update request (after request data load and before model persistence).
@@ -12874,12 +12589,12 @@ namespace core {
    * Could be used to additionally validate the request data or implement
    * completely different persistence behavior.
    */
-  onAdminBeforeUpdateRequest(): (hook.Hook<AdminUpdateEvent | undefined>)
+  onAdminBeforeUpdateRequest(): (hook.Hook<AdminUpdateEvent | undefined> | undefined)
   /**
    * OnAdminAfterUpdateRequest hook is triggered after each
    * successful API Admin update request.
    */
-  onAdminAfterUpdateRequest(): (hook.Hook<AdminUpdateEvent | undefined>)
+  onAdminAfterUpdateRequest(): (hook.Hook<AdminUpdateEvent | undefined> | undefined)
   /**
    * OnAdminBeforeDeleteRequest hook is triggered before each API
    * Admin delete request (after model load and before actual deletion).
@@ -12887,12 +12602,12 @@ namespace core {
    * Could be used to additionally validate the request data or implement
    * completely different delete behavior.
    */
-  onAdminBeforeDeleteRequest(): (hook.Hook<AdminDeleteEvent | undefined>)
+  onAdminBeforeDeleteRequest(): (hook.Hook<AdminDeleteEvent | undefined> | undefined)
   /**
    * OnAdminAfterDeleteRequest hook is triggered after each
    * successful API Admin delete request.
    */
-  onAdminAfterDeleteRequest(): (hook.Hook<AdminDeleteEvent | undefined>)
+  onAdminAfterDeleteRequest(): (hook.Hook<AdminDeleteEvent | undefined> | undefined)
   /**
    * OnAdminAuthRequest hook is triggered on each successful API Admin
    * authentication request (sign-in, token refresh, etc.).
@@ -12900,7 +12615,7 @@ namespace core {
    * Could be used to additionally validate or modify the
    * authenticated admin data and token.
    */
-  onAdminAuthRequest(): (hook.Hook<AdminAuthEvent | undefined>)
+  onAdminAuthRequest(): (hook.Hook<AdminAuthEvent | undefined> | undefined)
   /**
    * OnAdminBeforeAuthWithPasswordRequest hook is triggered before each Admin
    * auth with password API request (after request data load and before password validation).
@@ -12908,12 +12623,12 @@ namespace core {
    * Could be used to implement for example a custom password validation
    * or to locate a different Admin identity (by assigning [AdminAuthWithPasswordEvent.Admin]).
    */
-  onAdminBeforeAuthWithPasswordRequest(): (hook.Hook<AdminAuthWithPasswordEvent | undefined>)
+  onAdminBeforeAuthWithPasswordRequest(): (hook.Hook<AdminAuthWithPasswordEvent | undefined> | undefined)
   /**
    * OnAdminAfterAuthWithPasswordRequest hook is triggered after each
    * successful Admin auth with password API request.
    */
-  onAdminAfterAuthWithPasswordRequest(): (hook.Hook<AdminAuthWithPasswordEvent | undefined>)
+  onAdminAfterAuthWithPasswordRequest(): (hook.Hook<AdminAuthWithPasswordEvent | undefined> | undefined)
   /**
    * OnAdminBeforeAuthRefreshRequest hook is triggered before each Admin
    * auth refresh API request (right before generating a new auth token).
@@ -12921,12 +12636,12 @@ namespace core {
    * Could be used to additionally validate the request data or implement
    * completely different auth refresh behavior.
    */
-  onAdminBeforeAuthRefreshRequest(): (hook.Hook<AdminAuthRefreshEvent | undefined>)
+  onAdminBeforeAuthRefreshRequest(): (hook.Hook<AdminAuthRefreshEvent | undefined> | undefined)
   /**
    * OnAdminAfterAuthRefreshRequest hook is triggered after each
    * successful auth refresh API request (right after generating a new auth token).
    */
-  onAdminAfterAuthRefreshRequest(): (hook.Hook<AdminAuthRefreshEvent | undefined>)
+  onAdminAfterAuthRefreshRequest(): (hook.Hook<AdminAuthRefreshEvent | undefined> | undefined)
   /**
    * OnAdminBeforeRequestPasswordResetRequest hook is triggered before each Admin
    * request password reset API request (after request data load and before sending the reset email).
@@ -12934,12 +12649,12 @@ namespace core {
    * Could be used to additionally validate the request data or implement
    * completely different password reset behavior.
    */
-  onAdminBeforeRequestPasswordResetRequest(): (hook.Hook<AdminRequestPasswordResetEvent | undefined>)
+  onAdminBeforeRequestPasswordResetRequest(): (hook.Hook<AdminRequestPasswordResetEvent | undefined> | undefined)
   /**
    * OnAdminAfterRequestPasswordResetRequest hook is triggered after each
    * successful request password reset API request.
    */
-  onAdminAfterRequestPasswordResetRequest(): (hook.Hook<AdminRequestPasswordResetEvent | undefined>)
+  onAdminAfterRequestPasswordResetRequest(): (hook.Hook<AdminRequestPasswordResetEvent | undefined> | undefined)
   /**
    * OnAdminBeforeConfirmPasswordResetRequest hook is triggered before each Admin
    * confirm password reset API request (after request data load and before persistence).
@@ -12947,12 +12662,12 @@ namespace core {
    * Could be used to additionally validate the request data or implement
    * completely different persistence behavior.
    */
-  onAdminBeforeConfirmPasswordResetRequest(): (hook.Hook<AdminConfirmPasswordResetEvent | undefined>)
+  onAdminBeforeConfirmPasswordResetRequest(): (hook.Hook<AdminConfirmPasswordResetEvent | undefined> | undefined)
   /**
    * OnAdminAfterConfirmPasswordResetRequest hook is triggered after each
    * successful confirm password reset API request.
    */
-  onAdminAfterConfirmPasswordResetRequest(): (hook.Hook<AdminConfirmPasswordResetEvent | undefined>)
+  onAdminAfterConfirmPasswordResetRequest(): (hook.Hook<AdminConfirmPasswordResetEvent | undefined> | undefined)
   /**
    * OnRecordAuthRequest hook is triggered on each successful API
    * record authentication request (sign-in, token refresh, etc.).
@@ -12964,7 +12679,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAuthRequest(...tags: string[]): (hook.TaggedHook<RecordAuthEvent | undefined>)
+  onRecordAuthRequest(...tags: string[]): (hook.TaggedHook<RecordAuthEvent | undefined> | undefined)
   /**
    * OnRecordBeforeAuthWithPasswordRequest hook is triggered before each Record
    * auth with password API request (after request data load and before password validation).
@@ -12976,7 +12691,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeAuthWithPasswordRequest(...tags: string[]): (hook.TaggedHook<RecordAuthWithPasswordEvent | undefined>)
+  onRecordBeforeAuthWithPasswordRequest(...tags: string[]): (hook.TaggedHook<RecordAuthWithPasswordEvent | undefined> | undefined)
   /**
    * OnRecordAfterAuthWithPasswordRequest hook is triggered after each
    * successful Record auth with password API request.
@@ -12985,7 +12700,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterAuthWithPasswordRequest(...tags: string[]): (hook.TaggedHook<RecordAuthWithPasswordEvent | undefined>)
+  onRecordAfterAuthWithPasswordRequest(...tags: string[]): (hook.TaggedHook<RecordAuthWithPasswordEvent | undefined> | undefined)
   /**
    * OnRecordBeforeAuthWithOAuth2Request hook is triggered before each Record
    * OAuth2 sign-in/sign-up API request (after token exchange and before external provider linking).
@@ -13000,7 +12715,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeAuthWithOAuth2Request(...tags: string[]): (hook.TaggedHook<RecordAuthWithOAuth2Event | undefined>)
+  onRecordBeforeAuthWithOAuth2Request(...tags: string[]): (hook.TaggedHook<RecordAuthWithOAuth2Event | undefined> | undefined)
   /**
    * OnRecordAfterAuthWithOAuth2Request hook is triggered after each
    * successful Record OAuth2 API request.
@@ -13009,7 +12724,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterAuthWithOAuth2Request(...tags: string[]): (hook.TaggedHook<RecordAuthWithOAuth2Event | undefined>)
+  onRecordAfterAuthWithOAuth2Request(...tags: string[]): (hook.TaggedHook<RecordAuthWithOAuth2Event | undefined> | undefined)
   /**
    * OnRecordBeforeAuthRefreshRequest hook is triggered before each Record
    * auth refresh API request (right before generating a new auth token).
@@ -13021,7 +12736,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeAuthRefreshRequest(...tags: string[]): (hook.TaggedHook<RecordAuthRefreshEvent | undefined>)
+  onRecordBeforeAuthRefreshRequest(...tags: string[]): (hook.TaggedHook<RecordAuthRefreshEvent | undefined> | undefined)
   /**
    * OnRecordAfterAuthRefreshRequest hook is triggered after each
    * successful auth refresh API request (right after generating a new auth token).
@@ -13030,7 +12745,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterAuthRefreshRequest(...tags: string[]): (hook.TaggedHook<RecordAuthRefreshEvent | undefined>)
+  onRecordAfterAuthRefreshRequest(...tags: string[]): (hook.TaggedHook<RecordAuthRefreshEvent | undefined> | undefined)
   /**
    * OnRecordListExternalAuthsRequest hook is triggered on each API record external auths list request.
    * 
@@ -13040,7 +12755,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordListExternalAuthsRequest(...tags: string[]): (hook.TaggedHook<RecordListExternalAuthsEvent | undefined>)
+  onRecordListExternalAuthsRequest(...tags: string[]): (hook.TaggedHook<RecordListExternalAuthsEvent | undefined> | undefined)
   /**
    * OnRecordBeforeUnlinkExternalAuthRequest hook is triggered before each API record
    * external auth unlink request (after models load and before the actual relation deletion).
@@ -13052,7 +12767,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeUnlinkExternalAuthRequest(...tags: string[]): (hook.TaggedHook<RecordUnlinkExternalAuthEvent | undefined>)
+  onRecordBeforeUnlinkExternalAuthRequest(...tags: string[]): (hook.TaggedHook<RecordUnlinkExternalAuthEvent | undefined> | undefined)
   /**
    * OnRecordAfterUnlinkExternalAuthRequest hook is triggered after each
    * successful API record external auth unlink request.
@@ -13061,7 +12776,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterUnlinkExternalAuthRequest(...tags: string[]): (hook.TaggedHook<RecordUnlinkExternalAuthEvent | undefined>)
+  onRecordAfterUnlinkExternalAuthRequest(...tags: string[]): (hook.TaggedHook<RecordUnlinkExternalAuthEvent | undefined> | undefined)
   /**
    * OnRecordBeforeRequestPasswordResetRequest hook is triggered before each Record
    * request password reset API request (after request data load and before sending the reset email).
@@ -13073,7 +12788,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeRequestPasswordResetRequest(...tags: string[]): (hook.TaggedHook<RecordRequestPasswordResetEvent | undefined>)
+  onRecordBeforeRequestPasswordResetRequest(...tags: string[]): (hook.TaggedHook<RecordRequestPasswordResetEvent | undefined> | undefined)
   /**
    * OnRecordAfterRequestPasswordResetRequest hook is triggered after each
    * successful request password reset API request.
@@ -13082,7 +12797,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterRequestPasswordResetRequest(...tags: string[]): (hook.TaggedHook<RecordRequestPasswordResetEvent | undefined>)
+  onRecordAfterRequestPasswordResetRequest(...tags: string[]): (hook.TaggedHook<RecordRequestPasswordResetEvent | undefined> | undefined)
   /**
    * OnRecordBeforeConfirmPasswordResetRequest hook is triggered before each Record
    * confirm password reset API request (after request data load and before persistence).
@@ -13094,7 +12809,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeConfirmPasswordResetRequest(...tags: string[]): (hook.TaggedHook<RecordConfirmPasswordResetEvent | undefined>)
+  onRecordBeforeConfirmPasswordResetRequest(...tags: string[]): (hook.TaggedHook<RecordConfirmPasswordResetEvent | undefined> | undefined)
   /**
    * OnRecordAfterConfirmPasswordResetRequest hook is triggered after each
    * successful confirm password reset API request.
@@ -13103,7 +12818,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterConfirmPasswordResetRequest(...tags: string[]): (hook.TaggedHook<RecordConfirmPasswordResetEvent | undefined>)
+  onRecordAfterConfirmPasswordResetRequest(...tags: string[]): (hook.TaggedHook<RecordConfirmPasswordResetEvent | undefined> | undefined)
   /**
    * OnRecordBeforeRequestVerificationRequest hook is triggered before each Record
    * request verification API request (after request data load and before sending the verification email).
@@ -13115,7 +12830,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeRequestVerificationRequest(...tags: string[]): (hook.TaggedHook<RecordRequestVerificationEvent | undefined>)
+  onRecordBeforeRequestVerificationRequest(...tags: string[]): (hook.TaggedHook<RecordRequestVerificationEvent | undefined> | undefined)
   /**
    * OnRecordAfterRequestVerificationRequest hook is triggered after each
    * successful request verification API request.
@@ -13124,7 +12839,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterRequestVerificationRequest(...tags: string[]): (hook.TaggedHook<RecordRequestVerificationEvent | undefined>)
+  onRecordAfterRequestVerificationRequest(...tags: string[]): (hook.TaggedHook<RecordRequestVerificationEvent | undefined> | undefined)
   /**
    * OnRecordBeforeConfirmVerificationRequest hook is triggered before each Record
    * confirm verification API request (after request data load and before persistence).
@@ -13136,7 +12851,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeConfirmVerificationRequest(...tags: string[]): (hook.TaggedHook<RecordConfirmVerificationEvent | undefined>)
+  onRecordBeforeConfirmVerificationRequest(...tags: string[]): (hook.TaggedHook<RecordConfirmVerificationEvent | undefined> | undefined)
   /**
    * OnRecordAfterConfirmVerificationRequest hook is triggered after each
    * successful confirm verification API request.
@@ -13145,7 +12860,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterConfirmVerificationRequest(...tags: string[]): (hook.TaggedHook<RecordConfirmVerificationEvent | undefined>)
+  onRecordAfterConfirmVerificationRequest(...tags: string[]): (hook.TaggedHook<RecordConfirmVerificationEvent | undefined> | undefined)
   /**
    * OnRecordBeforeRequestEmailChangeRequest hook is triggered before each Record request email change API request
    * (after request data load and before sending the email link to confirm the change).
@@ -13157,7 +12872,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeRequestEmailChangeRequest(...tags: string[]): (hook.TaggedHook<RecordRequestEmailChangeEvent | undefined>)
+  onRecordBeforeRequestEmailChangeRequest(...tags: string[]): (hook.TaggedHook<RecordRequestEmailChangeEvent | undefined> | undefined)
   /**
    * OnRecordAfterRequestEmailChangeRequest hook is triggered after each
    * successful request email change API request.
@@ -13166,7 +12881,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterRequestEmailChangeRequest(...tags: string[]): (hook.TaggedHook<RecordRequestEmailChangeEvent | undefined>)
+  onRecordAfterRequestEmailChangeRequest(...tags: string[]): (hook.TaggedHook<RecordRequestEmailChangeEvent | undefined> | undefined)
   /**
    * OnRecordBeforeConfirmEmailChangeRequest hook is triggered before each Record
    * confirm email change API request (after request data load and before persistence).
@@ -13178,7 +12893,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeConfirmEmailChangeRequest(...tags: string[]): (hook.TaggedHook<RecordConfirmEmailChangeEvent | undefined>)
+  onRecordBeforeConfirmEmailChangeRequest(...tags: string[]): (hook.TaggedHook<RecordConfirmEmailChangeEvent | undefined> | undefined)
   /**
    * OnRecordAfterConfirmEmailChangeRequest hook is triggered after each
    * successful confirm email change API request.
@@ -13187,7 +12902,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterConfirmEmailChangeRequest(...tags: string[]): (hook.TaggedHook<RecordConfirmEmailChangeEvent | undefined>)
+  onRecordAfterConfirmEmailChangeRequest(...tags: string[]): (hook.TaggedHook<RecordConfirmEmailChangeEvent | undefined> | undefined)
   /**
    * OnRecordsListRequest hook is triggered on each API Records list request.
    * 
@@ -13197,7 +12912,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordsListRequest(...tags: string[]): (hook.TaggedHook<RecordsListEvent | undefined>)
+  onRecordsListRequest(...tags: string[]): (hook.TaggedHook<RecordsListEvent | undefined> | undefined)
   /**
    * OnRecordViewRequest hook is triggered on each API Record view request.
    * 
@@ -13207,7 +12922,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordViewRequest(...tags: string[]): (hook.TaggedHook<RecordViewEvent | undefined>)
+  onRecordViewRequest(...tags: string[]): (hook.TaggedHook<RecordViewEvent | undefined> | undefined)
   /**
    * OnRecordBeforeCreateRequest hook is triggered before each API Record
    * create request (after request data load and before model persistence).
@@ -13219,7 +12934,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeCreateRequest(...tags: string[]): (hook.TaggedHook<RecordCreateEvent | undefined>)
+  onRecordBeforeCreateRequest(...tags: string[]): (hook.TaggedHook<RecordCreateEvent | undefined> | undefined)
   /**
    * OnRecordAfterCreateRequest hook is triggered after each
    * successful API Record create request.
@@ -13228,7 +12943,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterCreateRequest(...tags: string[]): (hook.TaggedHook<RecordCreateEvent | undefined>)
+  onRecordAfterCreateRequest(...tags: string[]): (hook.TaggedHook<RecordCreateEvent | undefined> | undefined)
   /**
    * OnRecordBeforeUpdateRequest hook is triggered before each API Record
    * update request (after request data load and before model persistence).
@@ -13240,7 +12955,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeUpdateRequest(...tags: string[]): (hook.TaggedHook<RecordUpdateEvent | undefined>)
+  onRecordBeforeUpdateRequest(...tags: string[]): (hook.TaggedHook<RecordUpdateEvent | undefined> | undefined)
   /**
    * OnRecordAfterUpdateRequest hook is triggered after each
    * successful API Record update request.
@@ -13249,7 +12964,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterUpdateRequest(...tags: string[]): (hook.TaggedHook<RecordUpdateEvent | undefined>)
+  onRecordAfterUpdateRequest(...tags: string[]): (hook.TaggedHook<RecordUpdateEvent | undefined> | undefined)
   /**
    * OnRecordBeforeDeleteRequest hook is triggered before each API Record
    * delete request (after model load and before actual deletion).
@@ -13261,7 +12976,7 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordBeforeDeleteRequest(...tags: string[]): (hook.TaggedHook<RecordDeleteEvent | undefined>)
+  onRecordBeforeDeleteRequest(...tags: string[]): (hook.TaggedHook<RecordDeleteEvent | undefined> | undefined)
   /**
    * OnRecordAfterDeleteRequest hook is triggered after each
    * successful API Record delete request.
@@ -13270,19 +12985,19 @@ namespace core {
    * then all event handlers registered via the created hook will be
    * triggered and called only if their event data origin matches the tags.
    */
-  onRecordAfterDeleteRequest(...tags: string[]): (hook.TaggedHook<RecordDeleteEvent | undefined>)
+  onRecordAfterDeleteRequest(...tags: string[]): (hook.TaggedHook<RecordDeleteEvent | undefined> | undefined)
   /**
    * OnCollectionsListRequest hook is triggered on each API Collections list request.
    * 
    * Could be used to validate or modify the response before returning it to the client.
    */
-  onCollectionsListRequest(): (hook.Hook<CollectionsListEvent | undefined>)
+  onCollectionsListRequest(): (hook.Hook<CollectionsListEvent | undefined> | undefined)
   /**
    * OnCollectionViewRequest hook is triggered on each API Collection view request.
    * 
    * Could be used to validate or modify the response before returning it to the client.
    */
-  onCollectionViewRequest(): (hook.Hook<CollectionViewEvent | undefined>)
+  onCollectionViewRequest(): (hook.Hook<CollectionViewEvent | undefined> | undefined)
   /**
    * OnCollectionBeforeCreateRequest hook is triggered before each API Collection
    * create request (after request data load and before model persistence).
@@ -13290,12 +13005,12 @@ namespace core {
    * Could be used to additionally validate the request data or implement
    * completely different persistence behavior.
    */
-  onCollectionBeforeCreateRequest(): (hook.Hook<CollectionCreateEvent | undefined>)
+  onCollectionBeforeCreateRequest(): (hook.Hook<CollectionCreateEvent | undefined> | undefined)
   /**
    * OnCollectionAfterCreateRequest hook is triggered after each
    * successful API Collection create request.
    */
-  onCollectionAfterCreateRequest(): (hook.Hook<CollectionCreateEvent | undefined>)
+  onCollectionAfterCreateRequest(): (hook.Hook<CollectionCreateEvent | undefined> | undefined)
   /**
    * OnCollectionBeforeUpdateRequest hook is triggered before each API Collection
    * update request (after request data load and before model persistence).
@@ -13303,12 +13018,12 @@ namespace core {
    * Could be used to additionally validate the request data or implement
    * completely different persistence behavior.
    */
-  onCollectionBeforeUpdateRequest(): (hook.Hook<CollectionUpdateEvent | undefined>)
+  onCollectionBeforeUpdateRequest(): (hook.Hook<CollectionUpdateEvent | undefined> | undefined)
   /**
    * OnCollectionAfterUpdateRequest hook is triggered after each
    * successful API Collection update request.
    */
-  onCollectionAfterUpdateRequest(): (hook.Hook<CollectionUpdateEvent | undefined>)
+  onCollectionAfterUpdateRequest(): (hook.Hook<CollectionUpdateEvent | undefined> | undefined)
   /**
    * OnCollectionBeforeDeleteRequest hook is triggered before each API
    * Collection delete request (after model load and before actual deletion).
@@ -13316,12 +13031,12 @@ namespace core {
    * Could be used to additionally validate the request data or implement
    * completely different delete behavior.
    */
-  onCollectionBeforeDeleteRequest(): (hook.Hook<CollectionDeleteEvent | undefined>)
+  onCollectionBeforeDeleteRequest(): (hook.Hook<CollectionDeleteEvent | undefined> | undefined)
   /**
    * OnCollectionAfterDeleteRequest hook is triggered after each
    * successful API Collection delete request.
    */
-  onCollectionAfterDeleteRequest(): (hook.Hook<CollectionDeleteEvent | undefined>)
+  onCollectionAfterDeleteRequest(): (hook.Hook<CollectionDeleteEvent | undefined> | undefined)
   /**
    * OnCollectionsBeforeImportRequest hook is triggered before each API
    * collections import request (after request data load and before the actual import).
@@ -13329,12 +13044,12 @@ namespace core {
    * Could be used to additionally validate the imported collections or
    * to implement completely different import behavior.
    */
-  onCollectionsBeforeImportRequest(): (hook.Hook<CollectionsImportEvent | undefined>)
+  onCollectionsBeforeImportRequest(): (hook.Hook<CollectionsImportEvent | undefined> | undefined)
   /**
    * OnCollectionsAfterImportRequest hook is triggered after each
    * successful API collections import request.
    */
-  onCollectionsAfterImportRequest(): (hook.Hook<CollectionsImportEvent | undefined>)
+  onCollectionsAfterImportRequest(): (hook.Hook<CollectionsImportEvent | undefined> | undefined)
  }
 }
 
@@ -13348,7 +13063,7 @@ namespace migrate {
   /**
    * Item returns a single migration from the list by its index.
    */
-  item(index: number): (Migration)
+  item(index: number): (Migration | undefined)
  }
  interface MigrationsList {
   /**
@@ -13477,7 +13192,7 @@ namespace cobra {
   deprecated: string
   /**
    * Annotations are key/value pairs that can be used by applications to identify or
-   * group commands or set special options.
+   * group commands.
    */
   annotations: _TygojaDict
   /**
@@ -13497,8 +13212,6 @@ namespace cobra {
    *   * PersistentPostRun()
    * ```
    * All functions get the same args, the arguments after the command name.
-   * The *PreRun and *PostRun functions will only be executed if the Run function of the current
-   * command has been declared.
    * 
    * PersistentPreRun: children of this command will inherit and execute.
    */
@@ -13701,12 +13414,6 @@ namespace cobra {
  }
  interface Command {
   /**
-   * SetErrPrefix sets error message prefix to be used. Application can use it to set custom prefix.
-   */
-  setErrPrefix(s: string): void
- }
- interface Command {
-  /**
    * SetGlobalNormalizationFunc sets a normalization function to all flag sets and also to child commands.
    * The user should not have a cyclic dependency on commands.
    */
@@ -13818,23 +13525,17 @@ namespace cobra {
  }
  interface Command {
   /**
-   * ErrPrefix return error message prefix for the command
-   */
-  errPrefix(): string
- }
- interface Command {
-  /**
    * Find the target command given the args and command tree
    * Meant to be run on the highest node. Only searches down.
    */
-  find(args: Array<string>): [(Command), Array<string>]
+  find(args: Array<string>): [(Command | undefined), Array<string>]
  }
  interface Command {
   /**
    * Traverse the command tree to find the command, and parse args for
    * each parent.
    */
-  traverse(args: Array<string>): [(Command), Array<string>]
+  traverse(args: Array<string>): [(Command | undefined), Array<string>]
  }
  interface Command {
   /**
@@ -13852,7 +13553,7 @@ namespace cobra {
   /**
    * Root finds root command.
    */
-  root(): (Command)
+  root(): (Command | undefined)
  }
  interface Command {
   /**
@@ -13883,13 +13584,13 @@ namespace cobra {
    * Retrieve ctx by calling cmd.Context() inside your *Run lifecycle or ValidArgs
    * functions.
    */
-  executeContextC(ctx: context.Context): (Command)
+  executeContextC(ctx: context.Context): (Command | undefined)
  }
  interface Command {
   /**
    * ExecuteC executes the command.
    */
-  executeC(): (Command)
+  executeC(): (Command | undefined)
  }
  interface Command {
   validateArgs(args: Array<string>): void
@@ -14031,7 +13732,6 @@ namespace cobra {
   /**
    * DebugFlags used to determine which flags have been assigned to which commands
    * and which persist.
-   * nolint:goconst
    */
   debugFlags(): void
  }
@@ -14127,37 +13827,37 @@ namespace cobra {
    * Flags returns the complete FlagSet that applies
    * to this command (local and persistent declared here and by all parents).
    */
-  flags(): (any)
+  flags(): (any | undefined)
  }
  interface Command {
   /**
    * LocalNonPersistentFlags are flags specific to this command which will NOT persist to subcommands.
    */
-  localNonPersistentFlags(): (any)
+  localNonPersistentFlags(): (any | undefined)
  }
  interface Command {
   /**
    * LocalFlags returns the local FlagSet specifically set in the current command.
    */
-  localFlags(): (any)
+  localFlags(): (any | undefined)
  }
  interface Command {
   /**
    * InheritedFlags returns all flags which were inherited from parent commands.
    */
-  inheritedFlags(): (any)
+  inheritedFlags(): (any | undefined)
  }
  interface Command {
   /**
    * NonInheritedFlags returns all flags which were not inherited from parent commands.
    */
-  nonInheritedFlags(): (any)
+  nonInheritedFlags(): (any | undefined)
  }
  interface Command {
   /**
    * PersistentFlags returns the persistent FlagSet specifically set in the current command.
    */
-  persistentFlags(): (any)
+  persistentFlags(): (any | undefined)
  }
  interface Command {
   /**
@@ -14220,7 +13920,7 @@ namespace cobra {
   /**
    * Flag climbs up the command tree looking for matching flag.
    */
-  flag(name: string): (any)
+  flag(name: string): (any | undefined)
  }
  interface Command {
   /**
@@ -14232,19 +13932,13 @@ namespace cobra {
   /**
    * Parent returns a commands parent command.
    */
-  parent(): (Command)
+  parent(): (Command | undefined)
  }
  interface Command {
   /**
    * RegisterFlagCompletionFunc should be called to register a function to provide completion for a flag.
    */
   registerFlagCompletionFunc(flagName: string, f: (cmd: Command, args: Array<string>, toComplete: string) => [Array<string>, ShellCompDirective]): void
- }
- interface Command {
-  /**
-   * GetFlagCompletionFunc returns the completion function for the given flag of the command, if available.
-   */
-  getFlagCompletionFunc(flagName: string): [(_arg0: Command, _arg1: Array<string>, _arg2: string) => [Array<string>, ShellCompDirective], boolean]
  }
  interface Command {
   /**
@@ -14277,13 +13971,6 @@ namespace cobra {
  }
  interface Command {
   /**
-   * MarkFlagsOneRequired marks the given flags with annotations so that Cobra errors
-   * if the command is invoked without at least one flag from the given set of flags.
-   */
-  markFlagsOneRequired(...flagNames: string[]): void
- }
- interface Command {
-  /**
    * MarkFlagsMutuallyExclusive marks the given flags with annotations so that Cobra errors
    * if the command is invoked with more than one flag from the given set of flags.
    */
@@ -14291,7 +13978,7 @@ namespace cobra {
  }
  interface Command {
   /**
-   * ValidateFlagGroups validates the mutuallyExclusive/oneRequired/requiredAsGroup logic and returns the
+   * ValidateFlagGroups validates the mutuallyExclusive/requiredAsGroup logic and returns the
    * first error encountered.
    */
   validateFlagGroups(): void
@@ -14434,46 +14121,6 @@ namespace cobra {
 }
 
 /**
- * Package io provides basic interfaces to I/O primitives.
- * Its primary job is to wrap existing implementations of such primitives,
- * such as those in package os, into shared public interfaces that
- * abstract the functionality, plus some other related primitives.
- * 
- * Because these interfaces and primitives wrap lower-level operations with
- * various implementations, unless otherwise informed clients should not
- * assume they are safe for parallel execution.
- */
-namespace io {
- /**
-  * Writer is the interface that wraps the basic Write method.
-  * 
-  * Write writes len(p) bytes from p to the underlying data stream.
-  * It returns the number of bytes written from p (0 <= n <= len(p))
-  * and any error encountered that caused the write to stop early.
-  * Write must return a non-nil error if it returns n < len(p).
-  * Write must not modify the slice data, even temporarily.
-  * 
-  * Implementations must not retain p.
-  */
- interface Writer {
-  [key:string]: any;
-  write(p: string|Array<number>): number
- }
- /**
-  * ReadCloser is the interface that groups the basic Read and Close methods.
-  */
- interface ReadCloser {
-  [key:string]: any;
- }
- /**
-  * WriteCloser is the interface that groups the basic Write and Close methods.
-  */
- interface WriteCloser {
-  [key:string]: any;
- }
-}
-
-/**
  * Package syscall contains an interface to the low-level operating system
  * primitives. The details vary depending on the underlying system, and
  * by default, godoc will display the syscall documentation for the current
@@ -14532,6 +14179,31 @@ namespace syscall {
 }
 
 /**
+ * Package io provides basic interfaces to I/O primitives.
+ * Its primary job is to wrap existing implementations of such primitives,
+ * such as those in package os, into shared public interfaces that
+ * abstract the functionality, plus some other related primitives.
+ * 
+ * Because these interfaces and primitives wrap lower-level operations with
+ * various implementations, unless otherwise informed clients should not
+ * assume they are safe for parallel execution.
+ */
+namespace io {
+ /**
+  * ReadCloser is the interface that groups the basic Read and Close methods.
+  */
+ interface ReadCloser {
+  [key:string]: any;
+ }
+ /**
+  * WriteCloser is the interface that groups the basic Write and Close methods.
+  */
+ interface WriteCloser {
+  [key:string]: any;
+ }
+}
+
+/**
  * Package time provides functionality for measuring and displaying time.
  * 
  * The calendrical calculations always assume a Gregorian calendar, with
@@ -14578,7 +14250,7 @@ namespace syscall {
  * The canonical way to strip a monotonic clock reading is to use t = t.Round(0).
  * 
  * If Times t and u both contain monotonic clock readings, the operations
- * t.After(u), t.Before(u), t.Equal(u), t.Compare(u), and t.Sub(u) are carried out
+ * t.After(u), t.Before(u), t.Equal(u), and t.Sub(u) are carried out
  * using the monotonic clock readings alone, ignoring the wall clock
  * readings. If either t or u contains no monotonic clock reading, these
  * operations fall back to using the wall clock readings.
@@ -14648,270 +14320,25 @@ namespace time {
 }
 
 /**
- * Package fs defines basic interfaces to a file system.
- * A file system can be provided by the host operating system
- * but also by other packages.
- */
-namespace fs {
-}
-
-/**
- * Package url parses URLs and implements query escaping.
- */
-namespace url {
- /**
-  * A URL represents a parsed URL (technically, a URI reference).
-  * 
-  * The general form represented is:
-  * 
-  * ```
-  * 	[scheme:][//[userinfo@]host][/]path[?query][#fragment]
-  * ```
-  * 
-  * URLs that do not start with a slash after the scheme are interpreted as:
-  * 
-  * ```
-  * 	scheme:opaque[?query][#fragment]
-  * ```
-  * 
-  * Note that the Path field is stored in decoded form: /%47%6f%2f becomes /Go/.
-  * A consequence is that it is impossible to tell which slashes in the Path were
-  * slashes in the raw URL and which were %2f. This distinction is rarely important,
-  * but when it is, the code should use the EscapedPath method, which preserves
-  * the original encoding of Path.
-  * 
-  * The RawPath field is an optional field which is only set when the default
-  * encoding of Path is different from the escaped path. See the EscapedPath method
-  * for more details.
-  * 
-  * URL's String method uses the EscapedPath method to obtain the path.
-  */
- interface URL {
-  scheme: string
-  opaque: string // encoded opaque data
-  user?: Userinfo // username and password information
-  host: string // host or host:port
-  path: string // path (relative paths may omit leading slash)
-  rawPath: string // encoded path hint (see EscapedPath method)
-  omitHost: boolean // do not emit empty host (authority)
-  forceQuery: boolean // append a query ('?') even if RawQuery is empty
-  rawQuery: string // encoded query values, without '?'
-  fragment: string // fragment for references, without '#'
-  rawFragment: string // encoded fragment hint (see EscapedFragment method)
- }
- interface URL {
-  /**
-   * EscapedPath returns the escaped form of u.Path.
-   * In general there are multiple possible escaped forms of any path.
-   * EscapedPath returns u.RawPath when it is a valid escaping of u.Path.
-   * Otherwise EscapedPath ignores u.RawPath and computes an escaped
-   * form on its own.
-   * The String and RequestURI methods use EscapedPath to construct
-   * their results.
-   * In general, code should call EscapedPath instead of
-   * reading u.RawPath directly.
-   */
-  escapedPath(): string
- }
- interface URL {
-  /**
-   * EscapedFragment returns the escaped form of u.Fragment.
-   * In general there are multiple possible escaped forms of any fragment.
-   * EscapedFragment returns u.RawFragment when it is a valid escaping of u.Fragment.
-   * Otherwise EscapedFragment ignores u.RawFragment and computes an escaped
-   * form on its own.
-   * The String method uses EscapedFragment to construct its result.
-   * In general, code should call EscapedFragment instead of
-   * reading u.RawFragment directly.
-   */
-  escapedFragment(): string
- }
- interface URL {
-  /**
-   * String reassembles the URL into a valid URL string.
-   * The general form of the result is one of:
-   * 
-   * ```
-   * 	scheme:opaque?query#fragment
-   * 	scheme://userinfo@host/path?query#fragment
-   * ```
-   * 
-   * If u.Opaque is non-empty, String uses the first form;
-   * otherwise it uses the second form.
-   * Any non-ASCII characters in host are escaped.
-   * To obtain the path, String uses u.EscapedPath().
-   * 
-   * In the second form, the following rules apply:
-   * ```
-   *   - if u.Scheme is empty, scheme: is omitted.
-   *   - if u.User is nil, userinfo@ is omitted.
-   *   - if u.Host is empty, host/ is omitted.
-   *   - if u.Scheme and u.Host are empty and u.User is nil,
-   *     the entire scheme://userinfo@host/ is omitted.
-   *   - if u.Host is non-empty and u.Path begins with a /,
-   *     the form host/path does not add its own /.
-   *   - if u.RawQuery is empty, ?query is omitted.
-   *   - if u.Fragment is empty, #fragment is omitted.
-   * ```
-   */
-  string(): string
- }
- interface URL {
-  /**
-   * Redacted is like String but replaces any password with "xxxxx".
-   * Only the password in u.User is redacted.
-   */
-  redacted(): string
- }
- /**
-  * Values maps a string key to a list of values.
-  * It is typically used for query parameters and form values.
-  * Unlike in the http.Header map, the keys in a Values map
-  * are case-sensitive.
-  */
- interface Values extends _TygojaDict{}
- interface Values {
-  /**
-   * Get gets the first value associated with the given key.
-   * If there are no values associated with the key, Get returns
-   * the empty string. To access multiple values, use the map
-   * directly.
-   */
-  get(key: string): string
- }
- interface Values {
-  /**
-   * Set sets the key to value. It replaces any existing
-   * values.
-   */
-  set(key: string): void
- }
- interface Values {
-  /**
-   * Add adds the value to key. It appends to any existing
-   * values associated with key.
-   */
-  add(key: string): void
- }
- interface Values {
-  /**
-   * Del deletes the values associated with key.
-   */
-  del(key: string): void
- }
- interface Values {
-  /**
-   * Has checks whether a given key is set.
-   */
-  has(key: string): boolean
- }
- interface Values {
-  /**
-   * Encode encodes the values into “URL encoded” form
-   * ("bar=baz&foo=quux") sorted by key.
-   */
-  encode(): string
- }
- interface URL {
-  /**
-   * IsAbs reports whether the URL is absolute.
-   * Absolute means that it has a non-empty scheme.
-   */
-  isAbs(): boolean
- }
- interface URL {
-  /**
-   * Parse parses a URL in the context of the receiver. The provided URL
-   * may be relative or absolute. Parse returns nil, err on parse
-   * failure, otherwise its return value is the same as ResolveReference.
-   */
-  parse(ref: string): (URL)
- }
- interface URL {
-  /**
-   * ResolveReference resolves a URI reference to an absolute URI from
-   * an absolute base URI u, per RFC 3986 Section 5.2. The URI reference
-   * may be relative or absolute. ResolveReference always returns a new
-   * URL instance, even if the returned URL is identical to either the
-   * base or reference. If ref is an absolute URL, then ResolveReference
-   * ignores base and returns a copy of ref.
-   */
-  resolveReference(ref: URL): (URL)
- }
- interface URL {
-  /**
-   * Query parses RawQuery and returns the corresponding values.
-   * It silently discards malformed value pairs.
-   * To check errors use ParseQuery.
-   */
-  query(): Values
- }
- interface URL {
-  /**
-   * RequestURI returns the encoded path?query or opaque?query
-   * string that would be used in an HTTP request for u.
-   */
-  requestURI(): string
- }
- interface URL {
-  /**
-   * Hostname returns u.Host, stripping any valid port number if present.
-   * 
-   * If the result is enclosed in square brackets, as literal IPv6 addresses are,
-   * the square brackets are removed from the result.
-   */
-  hostname(): string
- }
- interface URL {
-  /**
-   * Port returns the port part of u.Host, without the leading colon.
-   * 
-   * If u.Host doesn't contain a valid numeric port, Port returns an empty string.
-   */
-  port(): string
- }
- interface URL {
-  marshalBinary(): string|Array<number>
- }
- interface URL {
-  unmarshalBinary(text: string|Array<number>): void
- }
- interface URL {
-  /**
-   * JoinPath returns a new URL with the provided path elements joined to
-   * any existing path and the resulting path cleaned of any ./ or ../ elements.
-   * Any sequences of multiple / characters will be reduced to a single /.
-   */
-  joinPath(...elem: string[]): (URL)
- }
-}
-
-/**
  * Package context defines the Context type, which carries deadlines,
  * cancellation signals, and other request-scoped values across API boundaries
  * and between processes.
  * 
- * Incoming requests to a server should create a [Context], and outgoing
+ * Incoming requests to a server should create a Context, and outgoing
  * calls to servers should accept a Context. The chain of function
  * calls between them must propagate the Context, optionally replacing
- * it with a derived Context created using [WithCancel], [WithDeadline],
- * [WithTimeout], or [WithValue]. When a Context is canceled, all
+ * it with a derived Context created using WithCancel, WithDeadline,
+ * WithTimeout, or WithValue. When a Context is canceled, all
  * Contexts derived from it are also canceled.
  * 
- * The [WithCancel], [WithDeadline], and [WithTimeout] functions take a
+ * The WithCancel, WithDeadline, and WithTimeout functions take a
  * Context (the parent) and return a derived Context (the child) and a
- * [CancelFunc]. Calling the CancelFunc cancels the child and its
+ * CancelFunc. Calling the CancelFunc cancels the child and its
  * children, removes the parent's reference to the child, and stops
  * any associated timers. Failing to call the CancelFunc leaks the
  * child and its children until the parent is canceled or the timer
  * fires. The go vet tool checks that CancelFuncs are used on all
  * control-flow paths.
- * 
- * The [WithCancelCause] function returns a [CancelCauseFunc], which
- * takes an error and records it as the cancellation cause. Calling
- * [Cause] on the canceled context or any of its children retrieves
- * the cause. If no cause is specified, Cause(ctx) returns the same
- * value as ctx.Err().
  * 
  * Programs that use Contexts should follow these rules to keep interfaces
  * consistent across packages and enable static analysis tools to check context
@@ -14927,7 +14354,7 @@ namespace url {
  * 	}
  * ```
  * 
- * Do not pass a nil [Context], even if a function permits it. Pass [context.TODO]
+ * Do not pass a nil Context, even if a function permits it. Pass context.TODO
  * if you are unsure about which Context to use.
  * 
  * Use context Values only for request-scoped data that transits processes and
@@ -14943,227 +14370,11 @@ namespace context {
 }
 
 /**
- * Package sql provides a generic interface around SQL (or SQL-like)
- * databases.
- * 
- * The sql package must be used in conjunction with a database driver.
- * See https://golang.org/s/sqldrivers for a list of drivers.
- * 
- * Drivers that do not support context cancellation will not return until
- * after the query is completed.
- * 
- * For usage examples, see the wiki page at
- * https://golang.org/s/sqlwiki.
+ * Package fs defines basic interfaces to a file system.
+ * A file system can be provided by the host operating system
+ * but also by other packages.
  */
-namespace sql {
- /**
-  * IsolationLevel is the transaction isolation level used in TxOptions.
-  */
- interface IsolationLevel extends Number{}
- interface IsolationLevel {
-  /**
-   * String returns the name of the transaction isolation level.
-   */
-  string(): string
- }
- /**
-  * DBStats contains database statistics.
-  */
- interface DBStats {
-  maxOpenConnections: number // Maximum number of open connections to the database.
-  /**
-   * Pool Status
-   */
-  openConnections: number // The number of established connections both in use and idle.
-  inUse: number // The number of connections currently in use.
-  idle: number // The number of idle connections.
-  /**
-   * Counters
-   */
-  waitCount: number // The total number of connections waited for.
-  waitDuration: time.Duration // The total time blocked waiting for a new connection.
-  maxIdleClosed: number // The total number of connections closed due to SetMaxIdleConns.
-  maxIdleTimeClosed: number // The total number of connections closed due to SetConnMaxIdleTime.
-  maxLifetimeClosed: number // The total number of connections closed due to SetConnMaxLifetime.
- }
- /**
-  * Conn represents a single database connection rather than a pool of database
-  * connections. Prefer running queries from DB unless there is a specific
-  * need for a continuous single database connection.
-  * 
-  * A Conn must call Close to return the connection to the database pool
-  * and may do so concurrently with a running query.
-  * 
-  * After a call to Close, all operations on the
-  * connection fail with ErrConnDone.
-  */
- interface Conn {
- }
- interface Conn {
-  /**
-   * PingContext verifies the connection to the database is still alive.
-   */
-  pingContext(ctx: context.Context): void
- }
- interface Conn {
-  /**
-   * ExecContext executes a query without returning any rows.
-   * The args are for any placeholder parameters in the query.
-   */
-  execContext(ctx: context.Context, query: string, ...args: any[]): Result
- }
- interface Conn {
-  /**
-   * QueryContext executes a query that returns rows, typically a SELECT.
-   * The args are for any placeholder parameters in the query.
-   */
-  queryContext(ctx: context.Context, query: string, ...args: any[]): (Rows)
- }
- interface Conn {
-  /**
-   * QueryRowContext executes a query that is expected to return at most one row.
-   * QueryRowContext always returns a non-nil value. Errors are deferred until
-   * Row's Scan method is called.
-   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
-   * Otherwise, the *Row's Scan scans the first selected row and discards
-   * the rest.
-   */
-  queryRowContext(ctx: context.Context, query: string, ...args: any[]): (Row)
- }
- interface Conn {
-  /**
-   * PrepareContext creates a prepared statement for later queries or executions.
-   * Multiple queries or executions may be run concurrently from the
-   * returned statement.
-   * The caller must call the statement's Close method
-   * when the statement is no longer needed.
-   * 
-   * The provided context is used for the preparation of the statement, not for the
-   * execution of the statement.
-   */
-  prepareContext(ctx: context.Context, query: string): (Stmt)
- }
- interface Conn {
-  /**
-   * Raw executes f exposing the underlying driver connection for the
-   * duration of f. The driverConn must not be used outside of f.
-   * 
-   * Once f returns and err is not driver.ErrBadConn, the Conn will continue to be usable
-   * until Conn.Close is called.
-   */
-  raw(f: (driverConn: any) => void): void
- }
- interface Conn {
-  /**
-   * BeginTx starts a transaction.
-   * 
-   * The provided context is used until the transaction is committed or rolled back.
-   * If the context is canceled, the sql package will roll back
-   * the transaction. Tx.Commit will return an error if the context provided to
-   * BeginTx is canceled.
-   * 
-   * The provided TxOptions is optional and may be nil if defaults should be used.
-   * If a non-default isolation level is used that the driver doesn't support,
-   * an error will be returned.
-   */
-  beginTx(ctx: context.Context, opts: TxOptions): (Tx)
- }
- interface Conn {
-  /**
-   * Close returns the connection to the connection pool.
-   * All operations after a Close will return with ErrConnDone.
-   * Close is safe to call concurrently with other operations and will
-   * block until all other operations finish. It may be useful to first
-   * cancel any used context and then call close directly after.
-   */
-  close(): void
- }
- /**
-  * ColumnType contains the name and type of a column.
-  */
- interface ColumnType {
- }
- interface ColumnType {
-  /**
-   * Name returns the name or alias of the column.
-   */
-  name(): string
- }
- interface ColumnType {
-  /**
-   * Length returns the column type length for variable length column types such
-   * as text and binary field types. If the type length is unbounded the value will
-   * be math.MaxInt64 (any database limits will still apply).
-   * If the column type is not variable length, such as an int, or if not supported
-   * by the driver ok is false.
-   */
-  length(): [number, boolean]
- }
- interface ColumnType {
-  /**
-   * DecimalSize returns the scale and precision of a decimal type.
-   * If not applicable or if not supported ok is false.
-   */
-  decimalSize(): [number, boolean]
- }
- interface ColumnType {
-  /**
-   * ScanType returns a Go type suitable for scanning into using Rows.Scan.
-   * If a driver does not support this property ScanType will return
-   * the type of an empty interface.
-   */
-  scanType(): any
- }
- interface ColumnType {
-  /**
-   * Nullable reports whether the column may be null.
-   * If a driver does not support this property ok will be false.
-   */
-  nullable(): boolean
- }
- interface ColumnType {
-  /**
-   * DatabaseTypeName returns the database system name of the column type. If an empty
-   * string is returned, then the driver type name is not supported.
-   * Consult your driver documentation for a list of driver data types. Length specifiers
-   * are not included.
-   * Common type names include "VARCHAR", "TEXT", "NVARCHAR", "DECIMAL", "BOOL",
-   * "INT", and "BIGINT".
-   */
-  databaseTypeName(): string
- }
- /**
-  * Row is the result of calling QueryRow to select a single row.
-  */
- interface Row {
- }
- interface Row {
-  /**
-   * Scan copies the columns from the matched row into the values
-   * pointed at by dest. See the documentation on Rows.Scan for details.
-   * If more than one row matches the query,
-   * Scan uses the first row and discards the rest. If no row matches
-   * the query, Scan returns ErrNoRows.
-   */
-  scan(...dest: any[]): void
- }
- interface Row {
-  /**
-   * Err provides a way for wrapping packages to check for
-   * query errors without calling Scan.
-   * Err returns the error, if any, that was encountered while running the query.
-   * If this error is not nil, this error will also be returned from Scan.
-   */
-  err(): void
- }
-}
-
-namespace migrate {
- interface Migration {
-  file: string
-  up: (db: dbx.Builder) => void
-  down: (db: dbx.Builder) => void
- }
+namespace fs {
 }
 
 /**
@@ -15240,10 +14451,6 @@ namespace migrate {
  * to print debugging information about its decisions.
  * To force a particular resolver while also printing debugging information,
  * join the two settings by a plus sign, as in GODEBUG=netdns=go+1.
- * 
- * On macOS, if Go code that uses the net package is built with
- * -buildmode=c-archive, linking the resulting archive into a C program
- * requires passing -lresolv when linking the C code.
  * 
  * On Plan 9, the resolver always accesses /net/cs and /net/dns.
  * 
@@ -15342,6 +14549,234 @@ namespace net {
    * Addr returns the listener's network address.
    */
   addr(): Addr
+ }
+}
+
+/**
+ * Package url parses URLs and implements query escaping.
+ */
+namespace url {
+ /**
+  * A URL represents a parsed URL (technically, a URI reference).
+  * 
+  * The general form represented is:
+  * 
+  * ```
+  * 	[scheme:][//[userinfo@]host][/]path[?query][#fragment]
+  * ```
+  * 
+  * URLs that do not start with a slash after the scheme are interpreted as:
+  * 
+  * ```
+  * 	scheme:opaque[?query][#fragment]
+  * ```
+  * 
+  * Note that the Path field is stored in decoded form: /%47%6f%2f becomes /Go/.
+  * A consequence is that it is impossible to tell which slashes in the Path were
+  * slashes in the raw URL and which were %2f. This distinction is rarely important,
+  * but when it is, the code should use RawPath, an optional field which only gets
+  * set if the default encoding is different from Path.
+  * 
+  * URL's String method uses the EscapedPath method to obtain the path. See the
+  * EscapedPath method for more details.
+  */
+ interface URL {
+  scheme: string
+  opaque: string // encoded opaque data
+  user?: Userinfo // username and password information
+  host: string // host or host:port
+  path: string // path (relative paths may omit leading slash)
+  rawPath: string // encoded path hint (see EscapedPath method)
+  omitHost: boolean // do not emit empty host (authority)
+  forceQuery: boolean // append a query ('?') even if RawQuery is empty
+  rawQuery: string // encoded query values, without '?'
+  fragment: string // fragment for references, without '#'
+  rawFragment: string // encoded fragment hint (see EscapedFragment method)
+ }
+ interface URL {
+  /**
+   * EscapedPath returns the escaped form of u.Path.
+   * In general there are multiple possible escaped forms of any path.
+   * EscapedPath returns u.RawPath when it is a valid escaping of u.Path.
+   * Otherwise EscapedPath ignores u.RawPath and computes an escaped
+   * form on its own.
+   * The String and RequestURI methods use EscapedPath to construct
+   * their results.
+   * In general, code should call EscapedPath instead of
+   * reading u.RawPath directly.
+   */
+  escapedPath(): string
+ }
+ interface URL {
+  /**
+   * EscapedFragment returns the escaped form of u.Fragment.
+   * In general there are multiple possible escaped forms of any fragment.
+   * EscapedFragment returns u.RawFragment when it is a valid escaping of u.Fragment.
+   * Otherwise EscapedFragment ignores u.RawFragment and computes an escaped
+   * form on its own.
+   * The String method uses EscapedFragment to construct its result.
+   * In general, code should call EscapedFragment instead of
+   * reading u.RawFragment directly.
+   */
+  escapedFragment(): string
+ }
+ interface URL {
+  /**
+   * String reassembles the URL into a valid URL string.
+   * The general form of the result is one of:
+   * 
+   * ```
+   * 	scheme:opaque?query#fragment
+   * 	scheme://userinfo@host/path?query#fragment
+   * ```
+   * 
+   * If u.Opaque is non-empty, String uses the first form;
+   * otherwise it uses the second form.
+   * Any non-ASCII characters in host are escaped.
+   * To obtain the path, String uses u.EscapedPath().
+   * 
+   * In the second form, the following rules apply:
+   * ```
+   *   - if u.Scheme is empty, scheme: is omitted.
+   *   - if u.User is nil, userinfo@ is omitted.
+   *   - if u.Host is empty, host/ is omitted.
+   *   - if u.Scheme and u.Host are empty and u.User is nil,
+   *     the entire scheme://userinfo@host/ is omitted.
+   *   - if u.Host is non-empty and u.Path begins with a /,
+   *     the form host/path does not add its own /.
+   *   - if u.RawQuery is empty, ?query is omitted.
+   *   - if u.Fragment is empty, #fragment is omitted.
+   * ```
+   */
+  string(): string
+ }
+ interface URL {
+  /**
+   * Redacted is like String but replaces any password with "xxxxx".
+   * Only the password in u.URL is redacted.
+   */
+  redacted(): string
+ }
+ /**
+  * Values maps a string key to a list of values.
+  * It is typically used for query parameters and form values.
+  * Unlike in the http.Header map, the keys in a Values map
+  * are case-sensitive.
+  */
+ interface Values extends _TygojaDict{}
+ interface Values {
+  /**
+   * Get gets the first value associated with the given key.
+   * If there are no values associated with the key, Get returns
+   * the empty string. To access multiple values, use the map
+   * directly.
+   */
+  get(key: string): string
+ }
+ interface Values {
+  /**
+   * Set sets the key to value. It replaces any existing
+   * values.
+   */
+  set(key: string): void
+ }
+ interface Values {
+  /**
+   * Add adds the value to key. It appends to any existing
+   * values associated with key.
+   */
+  add(key: string): void
+ }
+ interface Values {
+  /**
+   * Del deletes the values associated with key.
+   */
+  del(key: string): void
+ }
+ interface Values {
+  /**
+   * Has checks whether a given key is set.
+   */
+  has(key: string): boolean
+ }
+ interface Values {
+  /**
+   * Encode encodes the values into “URL encoded” form
+   * ("bar=baz&foo=quux") sorted by key.
+   */
+  encode(): string
+ }
+ interface URL {
+  /**
+   * IsAbs reports whether the URL is absolute.
+   * Absolute means that it has a non-empty scheme.
+   */
+  isAbs(): boolean
+ }
+ interface URL {
+  /**
+   * Parse parses a URL in the context of the receiver. The provided URL
+   * may be relative or absolute. Parse returns nil, err on parse
+   * failure, otherwise its return value is the same as ResolveReference.
+   */
+  parse(ref: string): (URL | undefined)
+ }
+ interface URL {
+  /**
+   * ResolveReference resolves a URI reference to an absolute URI from
+   * an absolute base URI u, per RFC 3986 Section 5.2. The URI reference
+   * may be relative or absolute. ResolveReference always returns a new
+   * URL instance, even if the returned URL is identical to either the
+   * base or reference. If ref is an absolute URL, then ResolveReference
+   * ignores base and returns a copy of ref.
+   */
+  resolveReference(ref: URL): (URL | undefined)
+ }
+ interface URL {
+  /**
+   * Query parses RawQuery and returns the corresponding values.
+   * It silently discards malformed value pairs.
+   * To check errors use ParseQuery.
+   */
+  query(): Values
+ }
+ interface URL {
+  /**
+   * RequestURI returns the encoded path?query or opaque?query
+   * string that would be used in an HTTP request for u.
+   */
+  requestURI(): string
+ }
+ interface URL {
+  /**
+   * Hostname returns u.Host, stripping any valid port number if present.
+   * 
+   * If the result is enclosed in square brackets, as literal IPv6 addresses are,
+   * the square brackets are removed from the result.
+   */
+  hostname(): string
+ }
+ interface URL {
+  /**
+   * Port returns the port part of u.Host, without the leading colon.
+   * 
+   * If u.Host doesn't contain a valid numeric port, Port returns an empty string.
+   */
+  port(): string
+ }
+ interface URL {
+  marshalBinary(): string|Array<number>
+ }
+ interface URL {
+  unmarshalBinary(text: string|Array<number>): void
+ }
+ interface URL {
+  /**
+   * JoinPath returns a new URL with the provided path elements joined to
+   * any existing path and the resulting path cleaned of any ./ or ../ elements.
+   * Any sequences of multiple / characters will be reduced to a single /.
+   */
+  joinPath(...elem: string[]): (URL | undefined)
  }
 }
 
@@ -15454,7 +14889,7 @@ namespace multipart {
    * It returns ErrMessageTooLarge if all non-file parts can't be stored in
    * memory.
    */
-  readForm(maxMemory: number): (Form)
+  readForm(maxMemory: number): (Form | undefined)
  }
  /**
   * Form is a parsed multipart form.
@@ -15497,7 +14932,7 @@ namespace multipart {
    * has a value of "quoted-printable", that header is instead
    * hidden and the body is transparently decoded during Read calls.
    */
-  nextPart(): (Part)
+  nextPart(): (Part | undefined)
  }
  interface Reader {
   /**
@@ -15507,7 +14942,7 @@ namespace multipart {
    * Unlike NextPart, it does not have special handling for
    * "Content-Transfer-Encoding: quoted-printable".
    */
-  nextRawPart(): (Part)
+  nextRawPart(): (Part | undefined)
  }
 }
 
@@ -15525,7 +14960,7 @@ namespace multipart {
  * 		url.Values{"key": {"Value"}, "id": {"123"}})
  * ```
  * 
- * The caller must close the response body when finished with it:
+ * The client must close the response body when finished with it:
  * 
  * ```
  * 	resp, err := http.Get("http://example.com/")
@@ -15536,8 +14971,6 @@ namespace multipart {
  * 	body, err := io.ReadAll(resp.Body)
  * 	// ...
  * ```
- * 
- * # Clients and Transports
  * 
  * For control over HTTP client headers, redirect policy, and other
  * settings, create a Client:
@@ -15573,8 +15006,6 @@ namespace multipart {
  * Clients and Transports are safe for concurrent use by multiple
  * goroutines and for efficiency should only be created once and re-used.
  * 
- * # Servers
- * 
  * ListenAndServe starts an HTTP server with a given address and handler.
  * The handler is usually nil, which means to use DefaultServeMux.
  * Handle and HandleFunc add handlers to DefaultServeMux:
@@ -15603,13 +15034,11 @@ namespace multipart {
  * 	log.Fatal(s.ListenAndServe())
  * ```
  * 
- * # HTTP/2
- * 
  * Starting with Go 1.6, the http package has transparent support for the
  * HTTP/2 protocol when using HTTPS. Programs that must disable HTTP/2
  * can do so by setting Transport.TLSNextProto (for clients) or
  * Server.TLSNextProto (for servers) to a non-nil, empty
- * map. Alternatively, the following GODEBUG settings are
+ * map. Alternatively, the following GODEBUG environment variables are
  * currently supported:
  * 
  * ```
@@ -15619,7 +15048,9 @@ namespace multipart {
  * 	GODEBUG=http2debug=2   # ... even more verbose, with frame dumps
  * ```
  * 
- * Please report any issues before disabling HTTP/2 support: https://golang.org/s/http2bug
+ * The GODEBUG variables are not covered by Go's API compatibility
+ * promise. Please report any issues before disabling HTTP/2
+ * support: https://golang.org/s/http2bug
  * 
  * The http package's Transport and Server both automatically enable
  * HTTP/2 support for simple configurations. To enable HTTP/2 for more
@@ -15867,7 +15298,7 @@ namespace http {
    * the Response's Request. ErrNoLocation is returned if no
    * Location header is present.
    */
-  location(): (url.URL)
+  location(): (url.URL | undefined)
  }
  interface Response {
   /**
@@ -15936,6 +15367,678 @@ namespace http {
  interface ConnState extends Number{}
  interface ConnState {
   string(): string
+ }
+}
+
+/**
+ * Package echo implements high performance, minimalist Go web framework.
+ * 
+ * Example:
+ * 
+ * ```
+ * 	  package main
+ * 
+ * 		import (
+ * 			"github.com/labstack/echo/v5"
+ * 			"github.com/labstack/echo/v5/middleware"
+ * 			"log"
+ * 			"net/http"
+ * 		)
+ * 
+ * 	  // Handler
+ * 	  func hello(c echo.Context) error {
+ * 	    return c.String(http.StatusOK, "Hello, World!")
+ * 	  }
+ * 
+ * 	  func main() {
+ * 	    // Echo instance
+ * 	    e := echo.New()
+ * 
+ * 	    // Middleware
+ * 	    e.Use(middleware.Logger())
+ * 	    e.Use(middleware.Recover())
+ * 
+ * 	    // Routes
+ * 	    e.GET("/", hello)
+ * 
+ * 	    // Start server
+ * 	    if err := e.Start(":8080"); err != http.ErrServerClosed {
+ * 			  log.Fatal(err)
+ * 		  }
+ * 	  }
+ * ```
+ * 
+ * Learn more at https://echo.labstack.com
+ */
+namespace echo {
+ /**
+  * Binder is the interface that wraps the Bind method.
+  */
+ interface Binder {
+  [key:string]: any;
+  bind(c: Context, i: {
+  }): void
+ }
+ /**
+  * ServableContext is interface that Echo context implementation must implement to be usable in middleware/handlers and
+  * be able to be routed by Router.
+  */
+ interface ServableContext {
+  [key:string]: any;
+  /**
+   * Reset resets the context after request completes. It must be called along
+   * with `Echo#AcquireContext()` and `Echo#ReleaseContext()`.
+   * See `Echo#ServeHTTP()`
+   */
+  reset(r: http.Request, w: http.ResponseWriter): void
+ }
+ // @ts-ignore
+ import stdContext = context
+ /**
+  * JSONSerializer is the interface that encodes and decodes JSON to and from interfaces.
+  */
+ interface JSONSerializer {
+  [key:string]: any;
+  serialize(c: Context, i: {
+  }, indent: string): void
+  deserialize(c: Context, i: {
+  }): void
+ }
+ /**
+  * HTTPErrorHandler is a centralized HTTP error handler.
+  */
+ interface HTTPErrorHandler {(c: Context, err: Error): void }
+ /**
+  * Validator is the interface that wraps the Validate function.
+  */
+ interface Validator {
+  [key:string]: any;
+  validate(i: {
+  }): void
+ }
+ /**
+  * Renderer is the interface that wraps the Render function.
+  */
+ interface Renderer {
+  [key:string]: any;
+  render(_arg0: io.Writer, _arg1: string, _arg2: {
+  }, _arg3: Context): void
+ }
+ /**
+  * Group is a set of sub-routes for a specified route. It can be used for inner
+  * routes that share a common middleware or functionality that should be separate
+  * from the parent echo instance while still inheriting from it.
+  */
+ interface Group {
+ }
+ interface Group {
+  /**
+   * Use implements `Echo#Use()` for sub-routes within the Group.
+   * Group middlewares are not executed on request when there is no matching route found.
+   */
+  use(...middleware: MiddlewareFunc[]): void
+ }
+ interface Group {
+  /**
+   * CONNECT implements `Echo#CONNECT()` for sub-routes within the Group. Panics on error.
+   */
+  connect(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * DELETE implements `Echo#DELETE()` for sub-routes within the Group. Panics on error.
+   */
+  delete(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * GET implements `Echo#GET()` for sub-routes within the Group. Panics on error.
+   */
+  get(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * HEAD implements `Echo#HEAD()` for sub-routes within the Group. Panics on error.
+   */
+  head(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * OPTIONS implements `Echo#OPTIONS()` for sub-routes within the Group. Panics on error.
+   */
+  options(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * PATCH implements `Echo#PATCH()` for sub-routes within the Group. Panics on error.
+   */
+  patch(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * POST implements `Echo#POST()` for sub-routes within the Group. Panics on error.
+   */
+  post(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * PUT implements `Echo#PUT()` for sub-routes within the Group. Panics on error.
+   */
+  put(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * TRACE implements `Echo#TRACE()` for sub-routes within the Group. Panics on error.
+   */
+  trace(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * Any implements `Echo#Any()` for sub-routes within the Group. Panics on error.
+   */
+  any(path: string, handler: HandlerFunc, ...middleware: MiddlewareFunc[]): Routes
+ }
+ interface Group {
+  /**
+   * Match implements `Echo#Match()` for sub-routes within the Group. Panics on error.
+   */
+  match(methods: Array<string>, path: string, handler: HandlerFunc, ...middleware: MiddlewareFunc[]): Routes
+ }
+ interface Group {
+  /**
+   * Group creates a new sub-group with prefix and optional sub-group-level middleware.
+   * Important! Group middlewares are only executed in case there was exact route match and not
+   * for 404 (not found) or 405 (method not allowed) cases. If this kind of behaviour is needed then add
+   * a catch-all route `/*` for the group which handler returns always 404
+   */
+  group(prefix: string, ...middleware: MiddlewareFunc[]): (Group | undefined)
+ }
+ interface Group {
+  /**
+   * Static implements `Echo#Static()` for sub-routes within the Group.
+   */
+  static(pathPrefix: string): RouteInfo
+ }
+ interface Group {
+  /**
+   * StaticFS implements `Echo#StaticFS()` for sub-routes within the Group.
+   * 
+   * When dealing with `embed.FS` use `fs := echo.MustSubFS(fs, "rootDirectory") to create sub fs which uses necessary
+   * prefix for directory path. This is necessary as `//go:embed assets/images` embeds files with paths
+   * including `assets/images` as their prefix.
+   */
+  staticFS(pathPrefix: string, filesystem: fs.FS): RouteInfo
+ }
+ interface Group {
+  /**
+   * FileFS implements `Echo#FileFS()` for sub-routes within the Group.
+   */
+  fileFS(path: string, filesystem: fs.FS, ...m: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * File implements `Echo#File()` for sub-routes within the Group. Panics on error.
+   */
+  file(path: string, ...middleware: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * RouteNotFound implements `Echo#RouteNotFound()` for sub-routes within the Group.
+   * 
+   * Example: `g.RouteNotFound("/*", func(c echo.Context) error { return c.NoContent(http.StatusNotFound) })`
+   */
+  routeNotFound(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * Add implements `Echo#Add()` for sub-routes within the Group. Panics on error.
+   */
+  add(method: string, handler: HandlerFunc, ...middleware: MiddlewareFunc[]): RouteInfo
+ }
+ interface Group {
+  /**
+   * AddRoute registers a new Routable with Router
+   */
+  addRoute(route: Routable): RouteInfo
+ }
+ /**
+  * IPExtractor is a function to extract IP addr from http.Request.
+  * Set appropriate one to Echo#IPExtractor.
+  * See https://echo.labstack.com/guide/ip-address for more details.
+  */
+ interface IPExtractor {(_arg0: http.Request): string }
+ /**
+  * Logger defines the logging interface that Echo uses internally in few places.
+  * For logging in handlers use your own logger instance (dependency injected or package/public variable) from logging framework of your choice.
+  */
+ interface Logger {
+  [key:string]: any;
+  /**
+   * Write provides writer interface for http.Server `ErrorLog` and for logging startup messages.
+   * `http.Server.ErrorLog` logs errors from accepting connections, unexpected behavior from handlers,
+   * and underlying FileSystem errors.
+   * `logger` middleware will use this method to write its JSON payload.
+   */
+  write(p: string|Array<number>): number
+  /**
+   * Error logs the error
+   */
+  error(err: Error): void
+ }
+ /**
+  * Response wraps an http.ResponseWriter and implements its interface to be used
+  * by an HTTP handler to construct an HTTP response.
+  * See: https://golang.org/pkg/net/http/#ResponseWriter
+  */
+ interface Response {
+  writer: http.ResponseWriter
+  status: number
+  size: number
+  committed: boolean
+ }
+ interface Response {
+  /**
+   * Header returns the header map for the writer that will be sent by
+   * WriteHeader. Changing the header after a call to WriteHeader (or Write) has
+   * no effect unless the modified headers were declared as trailers by setting
+   * the "Trailer" header before the call to WriteHeader (see example)
+   * To suppress implicit response headers, set their value to nil.
+   * Example: https://golang.org/pkg/net/http/#example_ResponseWriter_trailers
+   */
+  header(): http.Header
+ }
+ interface Response {
+  /**
+   * Before registers a function which is called just before the response is written.
+   */
+  before(fn: () => void): void
+ }
+ interface Response {
+  /**
+   * After registers a function which is called just after the response is written.
+   * If the `Content-Length` is unknown, none of the after function is executed.
+   */
+  after(fn: () => void): void
+ }
+ interface Response {
+  /**
+   * WriteHeader sends an HTTP response header with status code. If WriteHeader is
+   * not called explicitly, the first call to Write will trigger an implicit
+   * WriteHeader(http.StatusOK). Thus explicit calls to WriteHeader are mainly
+   * used to send error codes.
+   */
+  writeHeader(code: number): void
+ }
+ interface Response {
+  /**
+   * Write writes the data to the connection as part of an HTTP reply.
+   */
+  write(b: string|Array<number>): number
+ }
+ interface Response {
+  /**
+   * Flush implements the http.Flusher interface to allow an HTTP handler to flush
+   * buffered data to the client.
+   * See [http.Flusher](https://golang.org/pkg/net/http/#Flusher)
+   */
+  flush(): void
+ }
+ interface Response {
+  /**
+   * Hijack implements the http.Hijacker interface to allow an HTTP handler to
+   * take over the connection.
+   * See [http.Hijacker](https://golang.org/pkg/net/http/#Hijacker)
+   */
+  hijack(): [net.Conn, (bufio.ReadWriter | undefined)]
+ }
+ interface Response {
+  /**
+   * Unwrap returns the original http.ResponseWriter.
+   * ResponseController can be used to access the original http.ResponseWriter.
+   * See [https://go.dev/blog/go1.20]
+   */
+  unwrap(): http.ResponseWriter
+ }
+ interface Routes {
+  /**
+   * Reverse reverses route to URL string by replacing path parameters with given params values.
+   */
+  reverse(name: string, ...params: {
+   }[]): string
+ }
+ interface Routes {
+  /**
+   * FindByMethodPath searched for matching route info by method and path
+   */
+  findByMethodPath(method: string, path: string): RouteInfo
+ }
+ interface Routes {
+  /**
+   * FilterByMethod searched for matching route info by method
+   */
+  filterByMethod(method: string): Routes
+ }
+ interface Routes {
+  /**
+   * FilterByPath searched for matching route info by path
+   */
+  filterByPath(path: string): Routes
+ }
+ interface Routes {
+  /**
+   * FilterByName searched for matching route info by name
+   */
+  filterByName(name: string): Routes
+ }
+ /**
+  * Router is interface for routing request contexts to registered routes.
+  * 
+  * Contract between Echo/Context instance and the router:
+  * ```
+  *   - all routes must be added through methods on echo.Echo instance.
+  *     Reason: Echo instance uses RouteInfo.Params() length to allocate slice for paths parameters (see `Echo.contextPathParamAllocSize`).
+  *   - Router must populate Context during Router.Route call with:
+  *   - RoutableContext.SetPath
+  *   - RoutableContext.SetRawPathParams (IMPORTANT! with same slice pointer that c.RawPathParams() returns)
+  *   - RoutableContext.SetRouteInfo
+  *     And optionally can set additional information to Context with RoutableContext.Set
+  * ```
+  */
+ interface Router {
+  [key:string]: any;
+  /**
+   * Add registers Routable with the Router and returns registered RouteInfo
+   */
+  add(routable: Routable): RouteInfo
+  /**
+   * Remove removes route from the Router
+   */
+  remove(method: string, path: string): void
+  /**
+   * Routes returns information about all registered routes
+   */
+  routes(): Routes
+  /**
+   * Route searches Router for matching route and applies it to the given context. In case when no matching method
+   * was not found (405) or no matching route exists for path (404), router will return its implementation of 405/404
+   * handler function.
+   */
+  route(c: RoutableContext): HandlerFunc
+ }
+ /**
+  * Routable is interface for registering Route with Router. During route registration process the Router will
+  * convert Routable to RouteInfo with ToRouteInfo method. By creating custom implementation of Routable additional
+  * information about registered route can be stored in Routes (i.e. privileges used with route etc.)
+  */
+ interface Routable {
+  [key:string]: any;
+  /**
+   * ToRouteInfo converts Routable to RouteInfo
+   * 
+   * This method is meant to be used by Router after it parses url for path parameters, to store information about
+   * route just added.
+   */
+  toRouteInfo(params: Array<string>): RouteInfo
+  /**
+   * ToRoute converts Routable to Route which Router uses to register the method handler for path.
+   * 
+   * This method is meant to be used by Router to get fields (including handler and middleware functions) needed to
+   * add Route to Router.
+   */
+  toRoute(): Route
+  /**
+   * ForGroup recreates routable with added group prefix and group middlewares it is grouped to.
+   * 
+   * Is necessary for Echo.Group to be able to add/register Routable with Router and having group prefix and group
+   * middlewares included in actually registered Route.
+   */
+  forGroup(pathPrefix: string, middlewares: Array<MiddlewareFunc>): Routable
+ }
+ /**
+  * Routes is collection of RouteInfo instances with various helper methods.
+  */
+ interface Routes extends Array<RouteInfo>{}
+ /**
+  * RouteInfo describes registered route base fields.
+  * Method+Path pair uniquely identifies the Route. Name can have duplicates.
+  */
+ interface RouteInfo {
+  [key:string]: any;
+  method(): string
+  path(): string
+  name(): string
+  params(): Array<string>
+  /**
+   * Reverse reverses route to URL string by replacing path parameters with given params values.
+   */
+  reverse(...params: {
+  }[]): string
+ }
+ /**
+  * PathParams is collections of PathParam instances with various helper methods
+  */
+ interface PathParams extends Array<PathParam>{}
+ interface PathParams {
+  /**
+   * Get returns path parameter value for given name or default value.
+   */
+  get(name: string, defaultValue: string): string
+ }
+}
+
+/**
+ * Package sql provides a generic interface around SQL (or SQL-like)
+ * databases.
+ * 
+ * The sql package must be used in conjunction with a database driver.
+ * See https://golang.org/s/sqldrivers for a list of drivers.
+ * 
+ * Drivers that do not support context cancellation will not return until
+ * after the query is completed.
+ * 
+ * For usage examples, see the wiki page at
+ * https://golang.org/s/sqlwiki.
+ */
+namespace sql {
+ /**
+  * IsolationLevel is the transaction isolation level used in TxOptions.
+  */
+ interface IsolationLevel extends Number{}
+ interface IsolationLevel {
+  /**
+   * String returns the name of the transaction isolation level.
+   */
+  string(): string
+ }
+ /**
+  * DBStats contains database statistics.
+  */
+ interface DBStats {
+  maxOpenConnections: number // Maximum number of open connections to the database.
+  /**
+   * Pool Status
+   */
+  openConnections: number // The number of established connections both in use and idle.
+  inUse: number // The number of connections currently in use.
+  idle: number // The number of idle connections.
+  /**
+   * Counters
+   */
+  waitCount: number // The total number of connections waited for.
+  waitDuration: time.Duration // The total time blocked waiting for a new connection.
+  maxIdleClosed: number // The total number of connections closed due to SetMaxIdleConns.
+  maxIdleTimeClosed: number // The total number of connections closed due to SetConnMaxIdleTime.
+  maxLifetimeClosed: number // The total number of connections closed due to SetConnMaxLifetime.
+ }
+ /**
+  * Conn represents a single database connection rather than a pool of database
+  * connections. Prefer running queries from DB unless there is a specific
+  * need for a continuous single database connection.
+  * 
+  * A Conn must call Close to return the connection to the database pool
+  * and may do so concurrently with a running query.
+  * 
+  * After a call to Close, all operations on the
+  * connection fail with ErrConnDone.
+  */
+ interface Conn {
+ }
+ interface Conn {
+  /**
+   * PingContext verifies the connection to the database is still alive.
+   */
+  pingContext(ctx: context.Context): void
+ }
+ interface Conn {
+  /**
+   * ExecContext executes a query without returning any rows.
+   * The args are for any placeholder parameters in the query.
+   */
+  execContext(ctx: context.Context, query: string, ...args: any[]): Result
+ }
+ interface Conn {
+  /**
+   * QueryContext executes a query that returns rows, typically a SELECT.
+   * The args are for any placeholder parameters in the query.
+   */
+  queryContext(ctx: context.Context, query: string, ...args: any[]): (Rows | undefined)
+ }
+ interface Conn {
+  /**
+   * QueryRowContext executes a query that is expected to return at most one row.
+   * QueryRowContext always returns a non-nil value. Errors are deferred until
+   * Row's Scan method is called.
+   * If the query selects no rows, the *Row's Scan will return ErrNoRows.
+   * Otherwise, the *Row's Scan scans the first selected row and discards
+   * the rest.
+   */
+  queryRowContext(ctx: context.Context, query: string, ...args: any[]): (Row | undefined)
+ }
+ interface Conn {
+  /**
+   * PrepareContext creates a prepared statement for later queries or executions.
+   * Multiple queries or executions may be run concurrently from the
+   * returned statement.
+   * The caller must call the statement's Close method
+   * when the statement is no longer needed.
+   * 
+   * The provided context is used for the preparation of the statement, not for the
+   * execution of the statement.
+   */
+  prepareContext(ctx: context.Context, query: string): (Stmt | undefined)
+ }
+ interface Conn {
+  /**
+   * Raw executes f exposing the underlying driver connection for the
+   * duration of f. The driverConn must not be used outside of f.
+   * 
+   * Once f returns and err is not driver.ErrBadConn, the Conn will continue to be usable
+   * until Conn.Close is called.
+   */
+  raw(f: (driverConn: any) => void): void
+ }
+ interface Conn {
+  /**
+   * BeginTx starts a transaction.
+   * 
+   * The provided context is used until the transaction is committed or rolled back.
+   * If the context is canceled, the sql package will roll back
+   * the transaction. Tx.Commit will return an error if the context provided to
+   * BeginTx is canceled.
+   * 
+   * The provided TxOptions is optional and may be nil if defaults should be used.
+   * If a non-default isolation level is used that the driver doesn't support,
+   * an error will be returned.
+   */
+  beginTx(ctx: context.Context, opts: TxOptions): (Tx | undefined)
+ }
+ interface Conn {
+  /**
+   * Close returns the connection to the connection pool.
+   * All operations after a Close will return with ErrConnDone.
+   * Close is safe to call concurrently with other operations and will
+   * block until all other operations finish. It may be useful to first
+   * cancel any used context and then call close directly after.
+   */
+  close(): void
+ }
+ /**
+  * ColumnType contains the name and type of a column.
+  */
+ interface ColumnType {
+ }
+ interface ColumnType {
+  /**
+   * Name returns the name or alias of the column.
+   */
+  name(): string
+ }
+ interface ColumnType {
+  /**
+   * Length returns the column type length for variable length column types such
+   * as text and binary field types. If the type length is unbounded the value will
+   * be math.MaxInt64 (any database limits will still apply).
+   * If the column type is not variable length, such as an int, or if not supported
+   * by the driver ok is false.
+   */
+  length(): [number, boolean]
+ }
+ interface ColumnType {
+  /**
+   * DecimalSize returns the scale and precision of a decimal type.
+   * If not applicable or if not supported ok is false.
+   */
+  decimalSize(): [number, boolean]
+ }
+ interface ColumnType {
+  /**
+   * ScanType returns a Go type suitable for scanning into using Rows.Scan.
+   * If a driver does not support this property ScanType will return
+   * the type of an empty interface.
+   */
+  scanType(): any
+ }
+ interface ColumnType {
+  /**
+   * Nullable reports whether the column may be null.
+   * If a driver does not support this property ok will be false.
+   */
+  nullable(): boolean
+ }
+ interface ColumnType {
+  /**
+   * DatabaseTypeName returns the database system name of the column type. If an empty
+   * string is returned, then the driver type name is not supported.
+   * Consult your driver documentation for a list of driver data types. Length specifiers
+   * are not included.
+   * Common type names include "VARCHAR", "TEXT", "NVARCHAR", "DECIMAL", "BOOL",
+   * "INT", and "BIGINT".
+   */
+  databaseTypeName(): string
+ }
+ /**
+  * Row is the result of calling QueryRow to select a single row.
+  */
+ interface Row {
+ }
+ interface Row {
+  /**
+   * Scan copies the columns from the matched row into the values
+   * pointed at by dest. See the documentation on Rows.Scan for details.
+   * If more than one row matches the query,
+   * Scan uses the first row and discards the rest. If no row matches
+   * the query, Scan returns ErrNoRows.
+   */
+  scan(...dest: any[]): void
+ }
+ interface Row {
+  /**
+   * Err provides a way for wrapping packages to check for
+   * query errors without calling Scan.
+   * Err returns the error, if any, that was encountered while running the query.
+   * If this error is not nil, this error will also be returned from Scan.
+   */
+  err(): void
  }
 }
 
@@ -16010,6 +16113,163 @@ namespace store {
  }
 }
 
+namespace mailer {
+ /**
+  * Mailer defines a base mail client interface.
+  */
+ interface Mailer {
+  [key:string]: any;
+  /**
+   * Send sends an email with the provided Message.
+   */
+  send(message: Message): void
+ }
+}
+
+/**
+ * Package cobra is a commander providing a simple interface to create powerful modern CLI interfaces.
+ * In addition to providing an interface, Cobra simultaneously provides a controller to organize your application code.
+ */
+namespace cobra {
+ interface PositionalArgs {(cmd: Command, args: Array<string>): void }
+ // @ts-ignore
+ import flag = pflag
+ /**
+  * FParseErrWhitelist configures Flag parse errors to be ignored
+  */
+ interface FParseErrWhitelist extends _TygojaAny{}
+ /**
+  * Group Structure to manage groups for commands
+  */
+ interface Group {
+  id: string
+  title: string
+ }
+ /**
+  * ShellCompDirective is a bit map representing the different behaviors the shell
+  * can be instructed to have once completions have been provided.
+  */
+ interface ShellCompDirective extends Number{}
+ /**
+  * CompletionOptions are the options to control shell completion
+  */
+ interface CompletionOptions {
+  /**
+   * DisableDefaultCmd prevents Cobra from creating a default 'completion' command
+   */
+  disableDefaultCmd: boolean
+  /**
+   * DisableNoDescFlag prevents Cobra from creating the '--no-descriptions' flag
+   * for shells that support completion descriptions
+   */
+  disableNoDescFlag: boolean
+  /**
+   * DisableDescriptions turns off all completion descriptions for shells
+   * that support them
+   */
+  disableDescriptions: boolean
+  /**
+   * HiddenDefaultCmd makes the default 'completion' command hidden
+   */
+  hiddenDefaultCmd: boolean
+ }
+}
+
+/**
+ * Package oauth2 provides support for making
+ * OAuth2 authorized and authenticated HTTP requests,
+ * as specified in RFC 6749.
+ * It can additionally grant authorization with Bearer JWT.
+ */
+/**
+ * Copyright 2023 The Go Authors. All rights reserved.
+ * Use of this source code is governed by a BSD-style
+ * license that can be found in the LICENSE file.
+ */
+namespace oauth2 {
+ /**
+  * An AuthCodeOption is passed to Config.AuthCodeURL.
+  */
+ interface AuthCodeOption {
+  [key:string]: any;
+ }
+ /**
+  * Token represents the credentials used to authorize
+  * the requests to access protected resources on the OAuth 2.0
+  * provider's backend.
+  * 
+  * Most users of this package should not access fields of Token
+  * directly. They're exported mostly for use by related packages
+  * implementing derivative OAuth2 flows.
+  */
+ interface Token {
+  /**
+   * AccessToken is the token that authorizes and authenticates
+   * the requests.
+   */
+  accessToken: string
+  /**
+   * TokenType is the type of token.
+   * The Type method returns either this or "Bearer", the default.
+   */
+  tokenType: string
+  /**
+   * RefreshToken is a token that's used by the application
+   * (as opposed to the user) to refresh the access token
+   * if it expires.
+   */
+  refreshToken: string
+  /**
+   * Expiry is the optional expiration time of the access token.
+   * 
+   * If zero, TokenSource implementations will reuse the same
+   * token forever and RefreshToken or equivalent
+   * mechanisms for that TokenSource will not be used.
+   */
+  expiry: time.Time
+ }
+ interface Token {
+  /**
+   * Type returns t.TokenType if non-empty, else "Bearer".
+   */
+  type(): string
+ }
+ interface Token {
+  /**
+   * SetAuthHeader sets the Authorization header to r using the access
+   * token in t.
+   * 
+   * This method is unnecessary when using Transport or an HTTP Client
+   * returned by this package.
+   */
+  setAuthHeader(r: http.Request): void
+ }
+ interface Token {
+  /**
+   * WithExtra returns a new Token that's a clone of t, but using the
+   * provided raw extra map. This is only intended for use by packages
+   * implementing derivative OAuth2 flows.
+   */
+  withExtra(extra: {
+   }): (Token | undefined)
+ }
+ interface Token {
+  /**
+   * Extra returns an extra field.
+   * Extra fields are key-value pairs returned by the server as a
+   * part of the token retrieval response.
+   */
+  extra(key: string): {
+ }
+ }
+ interface Token {
+  /**
+   * Valid reports whether t is non-nil, has an AccessToken, and is not expired.
+   */
+  valid(): boolean
+ }
+}
+
 /**
  * Package types implements some commonly used db serializable types
  * like datetime, json, etc.
@@ -16066,6 +16326,152 @@ namespace types {
    * into the current DateTime instance.
    */
   scan(value: any): void
+ }
+}
+
+namespace settings {
+ // @ts-ignore
+ import validation = ozzo_validation
+ interface TokenConfig {
+  secret: string
+  duration: number
+ }
+ interface TokenConfig {
+  /**
+   * Validate makes TokenConfig validatable by implementing [validation.Validatable] interface.
+   */
+  validate(): void
+ }
+ interface SmtpConfig {
+  enabled: boolean
+  host: string
+  port: number
+  username: string
+  password: string
+  /**
+   * SMTP AUTH - PLAIN (default) or LOGIN
+   */
+  authMethod: string
+  /**
+   * Whether to enforce TLS encryption for the mail server connection.
+   * 
+   * When set to false StartTLS command is send, leaving the server
+   * to decide whether to upgrade the connection or not.
+   */
+  tls: boolean
+  /**
+   * LocalName is optional domain name or IP address used for the
+   * EHLO/HELO exchange (if not explicitly set, defaults to "localhost").
+   * 
+   * This is required only by some SMTP servers, such as Gmail SMTP-relay.
+   */
+  localName: string
+ }
+ interface SmtpConfig {
+  /**
+   * Validate makes SmtpConfig validatable by implementing [validation.Validatable] interface.
+   */
+  validate(): void
+ }
+ interface S3Config {
+  enabled: boolean
+  bucket: string
+  region: string
+  endpoint: string
+  accessKey: string
+  secret: string
+  forcePathStyle: boolean
+ }
+ interface S3Config {
+  /**
+   * Validate makes S3Config validatable by implementing [validation.Validatable] interface.
+   */
+  validate(): void
+ }
+ interface BackupsConfig {
+  /**
+   * Cron is a cron expression to schedule auto backups, eg. "* * * * *".
+   * 
+   * Leave it empty to disable the auto backups functionality.
+   */
+  cron: string
+  /**
+   * CronMaxKeep is the the max number of cron generated backups to
+   * keep before removing older entries.
+   * 
+   * This field works only when the cron config has valid cron expression.
+   */
+  cronMaxKeep: number
+  /**
+   * S3 is an optional S3 storage config specifying where to store the app backups.
+   */
+  s3: S3Config
+ }
+ interface BackupsConfig {
+  /**
+   * Validate makes BackupsConfig validatable by implementing [validation.Validatable] interface.
+   */
+  validate(): void
+ }
+ interface MetaConfig {
+  appName: string
+  appUrl: string
+  hideControls: boolean
+  senderName: string
+  senderAddress: string
+  verificationTemplate: EmailTemplate
+  resetPasswordTemplate: EmailTemplate
+  confirmEmailChangeTemplate: EmailTemplate
+ }
+ interface MetaConfig {
+  /**
+   * Validate makes MetaConfig validatable by implementing [validation.Validatable] interface.
+   */
+  validate(): void
+ }
+ interface LogsConfig {
+  maxDays: number
+ }
+ interface LogsConfig {
+  /**
+   * Validate makes LogsConfig validatable by implementing [validation.Validatable] interface.
+   */
+  validate(): void
+ }
+ interface AuthProviderConfig {
+  enabled: boolean
+  clientId: string
+  clientSecret: string
+  authUrl: string
+  tokenUrl: string
+  userApiUrl: string
+ }
+ interface AuthProviderConfig {
+  /**
+   * Validate makes `ProviderConfig` validatable by implementing [validation.Validatable] interface.
+   */
+  validate(): void
+ }
+ interface AuthProviderConfig {
+  /**
+   * SetupProvider loads the current AuthProviderConfig into the specified provider.
+   */
+  setupProvider(provider: auth.Provider): void
+ }
+ /**
+  * Deprecated: Will be removed in v0.9+
+  */
+ interface EmailAuthConfig {
+  enabled: boolean
+  exceptDomains: Array<string>
+  onlyDomains: Array<string>
+  minPasswordLength: number
+ }
+ interface EmailAuthConfig {
+  /**
+   * Deprecated: Will be removed in v0.9+
+   */
+  validate(): void
  }
 }
 
@@ -16282,7 +16688,6 @@ namespace models {
   allowEmailAuth: boolean
   requireEmail: boolean
   exceptEmailDomains: Array<string>
-  onlyVerified: boolean
   onlyEmailDomains: Array<string>
   minPasswordLength: number
  }
@@ -16304,21 +16709,27 @@ namespace models {
    */
   validate(): void
  }
- type _subPYhho = BaseModel
- interface Log extends _subPYhho {
-  data: types.JsonMap
-  message: string
-  level: number
- }
- interface Log {
-  tableName(): string
- }
- type _subElbeo = BaseModel
- interface Param extends _subElbeo {
+ type _subRgSXl = BaseModel
+ interface Param extends _subRgSXl {
   key: string
   value: types.JsonRaw
  }
  interface Param {
+  tableName(): string
+ }
+ type _subsmacE = BaseModel
+ interface Request extends _subsmacE {
+  url: string
+  method: string
+  status: number
+  auth: string
+  userIp: string
+  remoteIp: string
+  referer: string
+  userAgent: string
+  meta: types.JsonMap
+ }
+ interface Request {
   tableName(): string
  }
  interface TableInfoRow {
@@ -16336,503 +16747,20 @@ namespace models {
 }
 
 /**
- * Package slog provides structured logging,
- * in which log records include a message,
- * a severity level, and various other attributes
- * expressed as key-value pairs.
+ * Package daos handles common PocketBase DB model manipulations.
  * 
- * It defines a type, [Logger],
- * which provides several methods (such as [Logger.Info] and [Logger.Error])
- * for reporting events of interest.
- * 
- * Each Logger is associated with a [Handler].
- * A Logger output method creates a [Record] from the method arguments
- * and passes it to the Handler, which decides how to handle it.
- * There is a default Logger accessible through top-level functions
- * (such as [Info] and [Error]) that call the corresponding Logger methods.
- * 
- * A log record consists of a time, a level, a message, and a set of key-value
- * pairs, where the keys are strings and the values may be of any type.
- * As an example,
- * 
- * ```
- * 	slog.Info("hello", "count", 3)
- * ```
- * 
- * creates a record containing the time of the call,
- * a level of Info, the message "hello", and a single
- * pair with key "count" and value 3.
- * 
- * The [Info] top-level function calls the [Logger.Info] method on the default Logger.
- * In addition to [Logger.Info], there are methods for Debug, Warn and Error levels.
- * Besides these convenience methods for common levels,
- * there is also a [Logger.Log] method which takes the level as an argument.
- * Each of these methods has a corresponding top-level function that uses the
- * default logger.
- * 
- * The default handler formats the log record's message, time, level, and attributes
- * as a string and passes it to the [log] package.
- * 
- * ```
- * 	2022/11/08 15:28:26 INFO hello count=3
- * ```
- * 
- * For more control over the output format, create a logger with a different handler.
- * This statement uses [New] to create a new logger with a TextHandler
- * that writes structured records in text form to standard error:
- * 
- * ```
- * 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
- * ```
- * 
- * [TextHandler] output is a sequence of key=value pairs, easily and unambiguously
- * parsed by machine. This statement:
- * 
- * ```
- * 	logger.Info("hello", "count", 3)
- * ```
- * 
- * produces this output:
- * 
- * ```
- * 	time=2022-11-08T15:28:26.000-05:00 level=INFO msg=hello count=3
- * ```
- * 
- * The package also provides [JSONHandler], whose output is line-delimited JSON:
- * 
- * ```
- * 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
- * 	logger.Info("hello", "count", 3)
- * ```
- * 
- * produces this output:
- * 
- * ```
- * 	{"time":"2022-11-08T15:28:26.000000000-05:00","level":"INFO","msg":"hello","count":3}
- * ```
- * 
- * Both [TextHandler] and [JSONHandler] can be configured with [HandlerOptions].
- * There are options for setting the minimum level (see Levels, below),
- * displaying the source file and line of the log call, and
- * modifying attributes before they are logged.
- * 
- * Setting a logger as the default with
- * 
- * ```
- * 	slog.SetDefault(logger)
- * ```
- * 
- * will cause the top-level functions like [Info] to use it.
- * [SetDefault] also updates the default logger used by the [log] package,
- * so that existing applications that use [log.Printf] and related functions
- * will send log records to the logger's handler without needing to be rewritten.
- * 
- * Some attributes are common to many log calls.
- * For example, you may wish to include the URL or trace identifier of a server request
- * with all log events arising from the request.
- * Rather than repeat the attribute with every log call, you can use [Logger.With]
- * to construct a new Logger containing the attributes:
- * 
- * ```
- * 	logger2 := logger.With("url", r.URL)
- * ```
- * 
- * The arguments to With are the same key-value pairs used in [Logger.Info].
- * The result is a new Logger with the same handler as the original, but additional
- * attributes that will appear in the output of every call.
- * 
- * # Levels
- * 
- * A [Level] is an integer representing the importance or severity of a log event.
- * The higher the level, the more severe the event.
- * This package defines constants for the most common levels,
- * but any int can be used as a level.
- * 
- * In an application, you may wish to log messages only at a certain level or greater.
- * One common configuration is to log messages at Info or higher levels,
- * suppressing debug logging until it is needed.
- * The built-in handlers can be configured with the minimum level to output by
- * setting [HandlerOptions.Level].
- * The program's `main` function typically does this.
- * The default value is LevelInfo.
- * 
- * Setting the [HandlerOptions.Level] field to a [Level] value
- * fixes the handler's minimum level throughout its lifetime.
- * Setting it to a [LevelVar] allows the level to be varied dynamically.
- * A LevelVar holds a Level and is safe to read or write from multiple
- * goroutines.
- * To vary the level dynamically for an entire program, first initialize
- * a global LevelVar:
- * 
- * ```
- * 	var programLevel = new(slog.LevelVar) // Info by default
- * ```
- * 
- * Then use the LevelVar to construct a handler, and make it the default:
- * 
- * ```
- * 	h := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
- * 	slog.SetDefault(slog.New(h))
- * ```
- * 
- * Now the program can change its logging level with a single statement:
- * 
- * ```
- * 	programLevel.Set(slog.LevelDebug)
- * ```
- * 
- * # Groups
- * 
- * Attributes can be collected into groups.
- * A group has a name that is used to qualify the names of its attributes.
- * How this qualification is displayed depends on the handler.
- * [TextHandler] separates the group and attribute names with a dot.
- * [JSONHandler] treats each group as a separate JSON object, with the group name as the key.
- * 
- * Use [Group] to create a Group attribute from a name and a list of key-value pairs:
- * 
- * ```
- * 	slog.Group("request",
- * 	    "method", r.Method,
- * 	    "url", r.URL)
- * ```
- * 
- * TextHandler would display this group as
- * 
- * ```
- * 	request.method=GET request.url=http://example.com
- * ```
- * 
- * JSONHandler would display it as
- * 
- * ```
- * 	"request":{"method":"GET","url":"http://example.com"}
- * ```
- * 
- * Use [Logger.WithGroup] to qualify all of a Logger's output
- * with a group name. Calling WithGroup on a Logger results in a
- * new Logger with the same Handler as the original, but with all
- * its attributes qualified by the group name.
- * 
- * This can help prevent duplicate attribute keys in large systems,
- * where subsystems might use the same keys.
- * Pass each subsystem a different Logger with its own group name so that
- * potential duplicates are qualified:
- * 
- * ```
- * 	logger := slog.Default().With("id", systemID)
- * 	parserLogger := logger.WithGroup("parser")
- * 	parseInput(input, parserLogger)
- * ```
- * 
- * When parseInput logs with parserLogger, its keys will be qualified with "parser",
- * so even if it uses the common key "id", the log line will have distinct keys.
- * 
- * # Contexts
- * 
- * Some handlers may wish to include information from the [context.Context] that is
- * available at the call site. One example of such information
- * is the identifier for the current span when tracing is enabled.
- * 
- * The [Logger.Log] and [Logger.LogAttrs] methods take a context as a first
- * argument, as do their corresponding top-level functions.
- * 
- * Although the convenience methods on Logger (Info and so on) and the
- * corresponding top-level functions do not take a context, the alternatives ending
- * in "Context" do. For example,
- * 
- * ```
- * 	slog.InfoContext(ctx, "message")
- * ```
- * 
- * It is recommended to pass a context to an output method if one is available.
- * 
- * # Attrs and Values
- * 
- * An [Attr] is a key-value pair. The Logger output methods accept Attrs as well as
- * alternating keys and values. The statement
- * 
- * ```
- * 	slog.Info("hello", slog.Int("count", 3))
- * ```
- * 
- * behaves the same as
- * 
- * ```
- * 	slog.Info("hello", "count", 3)
- * ```
- * 
- * There are convenience constructors for [Attr] such as [Int], [String], and [Bool]
- * for common types, as well as the function [Any] for constructing Attrs of any
- * type.
- * 
- * The value part of an Attr is a type called [Value].
- * Like an [any], a Value can hold any Go value,
- * but it can represent typical values, including all numbers and strings,
- * without an allocation.
- * 
- * For the most efficient log output, use [Logger.LogAttrs].
- * It is similar to [Logger.Log] but accepts only Attrs, not alternating
- * keys and values; this allows it, too, to avoid allocation.
- * 
- * The call
- * 
- * ```
- * 	logger.LogAttrs(ctx, slog.LevelInfo, "hello", slog.Int("count", 3))
- * ```
- * 
- * is the most efficient way to achieve the same output as
- * 
- * ```
- * 	slog.Info("hello", "count", 3)
- * ```
- * 
- * # Customizing a type's logging behavior
- * 
- * If a type implements the [LogValuer] interface, the [Value] returned from its LogValue
- * method is used for logging. You can use this to control how values of the type
- * appear in logs. For example, you can redact secret information like passwords,
- * or gather a struct's fields in a Group. See the examples under [LogValuer] for
- * details.
- * 
- * A LogValue method may return a Value that itself implements [LogValuer]. The [Value.Resolve]
- * method handles these cases carefully, avoiding infinite loops and unbounded recursion.
- * Handler authors and others may wish to use Value.Resolve instead of calling LogValue directly.
- * 
- * # Wrapping output methods
- * 
- * The logger functions use reflection over the call stack to find the file name
- * and line number of the logging call within the application. This can produce
- * incorrect source information for functions that wrap slog. For instance, if you
- * define this function in file mylog.go:
- * 
- * ```
- * 	func Infof(format string, args ...any) {
- * 	    slog.Default().Info(fmt.Sprintf(format, args...))
- * 	}
- * ```
- * 
- * and you call it like this in main.go:
- * 
- * ```
- * 	Infof(slog.Default(), "hello, %s", "world")
- * ```
- * 
- * then slog will report the source file as mylog.go, not main.go.
- * 
- * A correct implementation of Infof will obtain the source location
- * (pc) and pass it to NewRecord.
- * The Infof function in the package-level example called "wrapping"
- * demonstrates how to do this.
- * 
- * # Working with Records
- * 
- * Sometimes a Handler will need to modify a Record
- * before passing it on to another Handler or backend.
- * A Record contains a mixture of simple public fields (e.g. Time, Level, Message)
- * and hidden fields that refer to state (such as attributes) indirectly. This
- * means that modifying a simple copy of a Record (e.g. by calling
- * [Record.Add] or [Record.AddAttrs] to add attributes)
- * may have unexpected effects on the original.
- * Before modifying a Record, use [Record.Clone] to
- * create a copy that shares no state with the original,
- * or create a new Record with [NewRecord]
- * and build up its Attrs by traversing the old ones with [Record.Attrs].
- * 
- * # Performance considerations
- * 
- * If profiling your application demonstrates that logging is taking significant time,
- * the following suggestions may help.
- * 
- * If many log lines have a common attribute, use [Logger.With] to create a Logger with
- * that attribute. The built-in handlers will format that attribute only once, at the
- * call to [Logger.With]. The [Handler] interface is designed to allow that optimization,
- * and a well-written Handler should take advantage of it.
- * 
- * The arguments to a log call are always evaluated, even if the log event is discarded.
- * If possible, defer computation so that it happens only if the value is actually logged.
- * For example, consider the call
- * 
- * ```
- * 	slog.Info("starting request", "url", r.URL.String())  // may compute String unnecessarily
- * ```
- * 
- * The URL.String method will be called even if the logger discards Info-level events.
- * Instead, pass the URL directly:
- * 
- * ```
- * 	slog.Info("starting request", "url", &r.URL) // calls URL.String only if needed
- * ```
- * 
- * The built-in [TextHandler] will call its String method, but only
- * if the log event is enabled.
- * Avoiding the call to String also preserves the structure of the underlying value.
- * For example [JSONHandler] emits the components of the parsed URL as a JSON object.
- * If you want to avoid eagerly paying the cost of the String call
- * without causing the handler to potentially inspect the structure of the value,
- * wrap the value in a fmt.Stringer implementation that hides its Marshal methods.
- * 
- * You can also use the [LogValuer] interface to avoid unnecessary work in disabled log
- * calls. Say you need to log some expensive value:
- * 
- * ```
- * 	slog.Debug("frobbing", "value", computeExpensiveValue(arg))
- * ```
- * 
- * Even if this line is disabled, computeExpensiveValue will be called.
- * To avoid that, define a type implementing LogValuer:
- * 
- * ```
- * 	type expensive struct { arg int }
- * 
- * 	func (e expensive) LogValue() slog.Value {
- * 	    return slog.AnyValue(computeExpensiveValue(e.arg))
- * 	}
- * ```
- * 
- * Then use a value of that type in log calls:
- * 
- * ```
- * 	slog.Debug("frobbing", "value", expensive{arg})
- * ```
- * 
- * Now computeExpensiveValue will only be called when the line is enabled.
- * 
- * The built-in handlers acquire a lock before calling [io.Writer.Write]
- * to ensure that each record is written in one piece. User-defined
- * handlers are responsible for their own locking.
- * 
- * # Writing a handler
- * 
- * For a guide to writing a custom handler, see https://golang.org/s/slog-handler-guide.
+ * Think of daos as DB repository and service layer in one.
  */
-namespace slog {
+namespace daos {
+ /**
+  * ExpandFetchFunc defines the function that is used to fetch the expanded relation records.
+  */
+ interface ExpandFetchFunc {(relCollection: models.Collection, relIds: Array<string>): Array<(models.Record | undefined)> }
  // @ts-ignore
- import loginternal = internal
- /**
-  * A Logger records structured information about each call to its
-  * Log, Debug, Info, Warn, and Error methods.
-  * For each call, it creates a Record and passes it to a Handler.
-  * 
-  * To create a new Logger, call [New] or a Logger method
-  * that begins "With".
-  */
- interface Logger {
- }
- interface Logger {
-  /**
-   * Handler returns l's Handler.
-   */
-  handler(): Handler
- }
- interface Logger {
-  /**
-   * With returns a Logger that includes the given attributes
-   * in each output operation. Arguments are converted to
-   * attributes as if by [Logger.Log].
-   */
-  with(...args: any[]): (Logger)
- }
- interface Logger {
-  /**
-   * WithGroup returns a Logger that starts a group, if name is non-empty.
-   * The keys of all attributes added to the Logger will be qualified by the given
-   * name. (How that qualification happens depends on the [Handler.WithGroup]
-   * method of the Logger's Handler.)
-   * 
-   * If name is empty, WithGroup returns the receiver.
-   */
-  withGroup(name: string): (Logger)
- }
- interface Logger {
-  /**
-   * Enabled reports whether l emits log records at the given context and level.
-   */
-  enabled(ctx: context.Context, level: Level): boolean
- }
- interface Logger {
-  /**
-   * Log emits a log record with the current time and the given level and message.
-   * The Record's Attrs consist of the Logger's attributes followed by
-   * the Attrs specified by args.
-   * 
-   * The attribute arguments are processed as follows:
-   * ```
-   *   - If an argument is an Attr, it is used as is.
-   *   - If an argument is a string and this is not the last argument,
-   *     the following argument is treated as the value and the two are combined
-   *     into an Attr.
-   *   - Otherwise, the argument is treated as a value with key "!BADKEY".
-   * ```
-   */
-  log(ctx: context.Context, level: Level, msg: string, ...args: any[]): void
- }
- interface Logger {
-  /**
-   * LogAttrs is a more efficient version of [Logger.Log] that accepts only Attrs.
-   */
-  logAttrs(ctx: context.Context, level: Level, msg: string, ...attrs: Attr[]): void
- }
- interface Logger {
-  /**
-   * Debug logs at LevelDebug.
-   */
-  debug(msg: string, ...args: any[]): void
- }
- interface Logger {
-  /**
-   * DebugContext logs at LevelDebug with the given context.
-   */
-  debugContext(ctx: context.Context, msg: string, ...args: any[]): void
- }
- interface Logger {
-  /**
-   * Info logs at LevelInfo.
-   */
-  info(msg: string, ...args: any[]): void
- }
- interface Logger {
-  /**
-   * InfoContext logs at LevelInfo with the given context.
-   */
-  infoContext(ctx: context.Context, msg: string, ...args: any[]): void
- }
- interface Logger {
-  /**
-   * Warn logs at LevelWarn.
-   */
-  warn(msg: string, ...args: any[]): void
- }
- interface Logger {
-  /**
-   * WarnContext logs at LevelWarn with the given context.
-   */
-  warnContext(ctx: context.Context, msg: string, ...args: any[]): void
- }
- interface Logger {
-  /**
-   * Error logs at LevelError.
-   */
-  error(msg: string, ...args: any[]): void
- }
- interface Logger {
-  /**
-   * ErrorContext logs at LevelError with the given context.
-   */
-  errorContext(ctx: context.Context, msg: string, ...args: any[]): void
- }
-}
-
-namespace mailer {
- /**
-  * Mailer defines a base mail client interface.
-  */
- interface Mailer {
-  [key:string]: any;
-  /**
-   * Send sends an email with the provided Message.
-   */
-  send(message: Message): void
+ import validation = ozzo_validation
+ interface RequestsStatsItem {
+  total: number
+  date: types.DateTime
  }
 }
 
@@ -16926,8 +16854,8 @@ namespace hook {
   * TaggedHook defines a proxy hook which register handlers that are triggered only
   * if the TaggedHook.tags are empty or includes at least one of the event data tag(s).
   */
- type _subHkhjN<T> = mainHook<T>
- interface TaggedHook<T> extends _subHkhjN<T> {
+ type _subVAfnv<T> = mainHook<T>
+ interface TaggedHook<T> extends _subVAfnv<T> {
  }
  interface TaggedHook<T> {
   /**
@@ -16954,772 +16882,12 @@ namespace hook {
  }
 }
 
-/**
- * Package cobra is a commander providing a simple interface to create powerful modern CLI interfaces.
- * In addition to providing an interface, Cobra simultaneously provides a controller to organize your application code.
- */
-namespace cobra {
- interface PositionalArgs {(cmd: Command, args: Array<string>): void }
- // @ts-ignore
- import flag = pflag
- /**
-  * FParseErrWhitelist configures Flag parse errors to be ignored
-  */
- interface FParseErrWhitelist extends _TygojaAny{}
- /**
-  * Group Structure to manage groups for commands
-  */
- interface Group {
-  id: string
-  title: string
+namespace migrate {
+ interface Migration {
+  file: string
+  up: (db: dbx.Builder) => void
+  down: (db: dbx.Builder) => void
  }
- /**
-  * ShellCompDirective is a bit map representing the different behaviors the shell
-  * can be instructed to have once completions have been provided.
-  */
- interface ShellCompDirective extends Number{}
- /**
-  * CompletionOptions are the options to control shell completion
-  */
- interface CompletionOptions {
-  /**
-   * DisableDefaultCmd prevents Cobra from creating a default 'completion' command
-   */
-  disableDefaultCmd: boolean
-  /**
-   * DisableNoDescFlag prevents Cobra from creating the '--no-descriptions' flag
-   * for shells that support completion descriptions
-   */
-  disableNoDescFlag: boolean
-  /**
-   * DisableDescriptions turns off all completion descriptions for shells
-   * that support them
-   */
-  disableDescriptions: boolean
-  /**
-   * HiddenDefaultCmd makes the default 'completion' command hidden
-   */
-  hiddenDefaultCmd: boolean
- }
-}
-
-/**
- * Package echo implements high performance, minimalist Go web framework.
- * 
- * Example:
- * 
- * ```
- * 	  package main
- * 
- * 		import (
- * 			"github.com/labstack/echo/v5"
- * 			"github.com/labstack/echo/v5/middleware"
- * 			"log"
- * 			"net/http"
- * 		)
- * 
- * 	  // Handler
- * 	  func hello(c echo.Context) error {
- * 	    return c.String(http.StatusOK, "Hello, World!")
- * 	  }
- * 
- * 	  func main() {
- * 	    // Echo instance
- * 	    e := echo.New()
- * 
- * 	    // Middleware
- * 	    e.Use(middleware.Logger())
- * 	    e.Use(middleware.Recover())
- * 
- * 	    // Routes
- * 	    e.GET("/", hello)
- * 
- * 	    // Start server
- * 	    if err := e.Start(":8080"); err != http.ErrServerClosed {
- * 			  log.Fatal(err)
- * 		  }
- * 	  }
- * ```
- * 
- * Learn more at https://echo.labstack.com
- */
-namespace echo {
- /**
-  * Binder is the interface that wraps the Bind method.
-  */
- interface Binder {
-  [key:string]: any;
-  bind(c: Context, i: {
-  }): void
- }
- /**
-  * ServableContext is interface that Echo context implementation must implement to be usable in middleware/handlers and
-  * be able to be routed by Router.
-  */
- interface ServableContext {
-  [key:string]: any;
-  /**
-   * Reset resets the context after request completes. It must be called along
-   * with `Echo#AcquireContext()` and `Echo#ReleaseContext()`.
-   * See `Echo#ServeHTTP()`
-   */
-  reset(r: http.Request, w: http.ResponseWriter): void
- }
- // @ts-ignore
- import stdContext = context
- /**
-  * JSONSerializer is the interface that encodes and decodes JSON to and from interfaces.
-  */
- interface JSONSerializer {
-  [key:string]: any;
-  serialize(c: Context, i: {
-  }, indent: string): void
-  deserialize(c: Context, i: {
-  }): void
- }
- /**
-  * HTTPErrorHandler is a centralized HTTP error handler.
-  */
- interface HTTPErrorHandler {(c: Context, err: Error): void }
- /**
-  * Validator is the interface that wraps the Validate function.
-  */
- interface Validator {
-  [key:string]: any;
-  validate(i: {
-  }): void
- }
- /**
-  * Renderer is the interface that wraps the Render function.
-  */
- interface Renderer {
-  [key:string]: any;
-  render(_arg0: io.Writer, _arg1: string, _arg2: {
-  }, _arg3: Context): void
- }
- /**
-  * Group is a set of sub-routes for a specified route. It can be used for inner
-  * routes that share a common middleware or functionality that should be separate
-  * from the parent echo instance while still inheriting from it.
-  */
- interface Group {
- }
- interface Group {
-  /**
-   * Use implements `Echo#Use()` for sub-routes within the Group.
-   * Group middlewares are not executed on request when there is no matching route found.
-   */
-  use(...middleware: MiddlewareFunc[]): void
- }
- interface Group {
-  /**
-   * CONNECT implements `Echo#CONNECT()` for sub-routes within the Group. Panics on error.
-   */
-  connect(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * DELETE implements `Echo#DELETE()` for sub-routes within the Group. Panics on error.
-   */
-  delete(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * GET implements `Echo#GET()` for sub-routes within the Group. Panics on error.
-   */
-  get(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * HEAD implements `Echo#HEAD()` for sub-routes within the Group. Panics on error.
-   */
-  head(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * OPTIONS implements `Echo#OPTIONS()` for sub-routes within the Group. Panics on error.
-   */
-  options(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * PATCH implements `Echo#PATCH()` for sub-routes within the Group. Panics on error.
-   */
-  patch(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * POST implements `Echo#POST()` for sub-routes within the Group. Panics on error.
-   */
-  post(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * PUT implements `Echo#PUT()` for sub-routes within the Group. Panics on error.
-   */
-  put(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * TRACE implements `Echo#TRACE()` for sub-routes within the Group. Panics on error.
-   */
-  trace(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * Any implements `Echo#Any()` for sub-routes within the Group. Panics on error.
-   */
-  any(path: string, handler: HandlerFunc, ...middleware: MiddlewareFunc[]): Routes
- }
- interface Group {
-  /**
-   * Match implements `Echo#Match()` for sub-routes within the Group. Panics on error.
-   */
-  match(methods: Array<string>, path: string, handler: HandlerFunc, ...middleware: MiddlewareFunc[]): Routes
- }
- interface Group {
-  /**
-   * Group creates a new sub-group with prefix and optional sub-group-level middleware.
-   * Important! Group middlewares are only executed in case there was exact route match and not
-   * for 404 (not found) or 405 (method not allowed) cases. If this kind of behaviour is needed then add
-   * a catch-all route `/*` for the group which handler returns always 404
-   */
-  group(prefix: string, ...middleware: MiddlewareFunc[]): (Group)
- }
- interface Group {
-  /**
-   * Static implements `Echo#Static()` for sub-routes within the Group.
-   */
-  static(pathPrefix: string): RouteInfo
- }
- interface Group {
-  /**
-   * StaticFS implements `Echo#StaticFS()` for sub-routes within the Group.
-   * 
-   * When dealing with `embed.FS` use `fs := echo.MustSubFS(fs, "rootDirectory") to create sub fs which uses necessary
-   * prefix for directory path. This is necessary as `//go:embed assets/images` embeds files with paths
-   * including `assets/images` as their prefix.
-   */
-  staticFS(pathPrefix: string, filesystem: fs.FS): RouteInfo
- }
- interface Group {
-  /**
-   * FileFS implements `Echo#FileFS()` for sub-routes within the Group.
-   */
-  fileFS(path: string, filesystem: fs.FS, ...m: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * File implements `Echo#File()` for sub-routes within the Group. Panics on error.
-   */
-  file(path: string, ...middleware: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * RouteNotFound implements `Echo#RouteNotFound()` for sub-routes within the Group.
-   * 
-   * Example: `g.RouteNotFound("/*", func(c echo.Context) error { return c.NoContent(http.StatusNotFound) })`
-   */
-  routeNotFound(path: string, h: HandlerFunc, ...m: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * Add implements `Echo#Add()` for sub-routes within the Group. Panics on error.
-   */
-  add(method: string, handler: HandlerFunc, ...middleware: MiddlewareFunc[]): RouteInfo
- }
- interface Group {
-  /**
-   * AddRoute registers a new Routable with Router
-   */
-  addRoute(route: Routable): RouteInfo
- }
- /**
-  * IPExtractor is a function to extract IP addr from http.Request.
-  * Set appropriate one to Echo#IPExtractor.
-  * See https://echo.labstack.com/guide/ip-address for more details.
-  */
- interface IPExtractor {(_arg0: http.Request): string }
- /**
-  * Logger defines the logging interface that Echo uses internally in few places.
-  * For logging in handlers use your own logger instance (dependency injected or package/public variable) from logging framework of your choice.
-  */
- interface Logger {
-  [key:string]: any;
-  /**
-   * Write provides writer interface for http.Server `ErrorLog` and for logging startup messages.
-   * `http.Server.ErrorLog` logs errors from accepting connections, unexpected behavior from handlers,
-   * and underlying FileSystem errors.
-   * `logger` middleware will use this method to write its JSON payload.
-   */
-  write(p: string|Array<number>): number
-  /**
-   * Error logs the error
-   */
-  error(err: Error): void
- }
- /**
-  * Response wraps an http.ResponseWriter and implements its interface to be used
-  * by an HTTP handler to construct an HTTP response.
-  * See: https://golang.org/pkg/net/http/#ResponseWriter
-  */
- interface Response {
-  writer: http.ResponseWriter
-  status: number
-  size: number
-  committed: boolean
- }
- interface Response {
-  /**
-   * Header returns the header map for the writer that will be sent by
-   * WriteHeader. Changing the header after a call to WriteHeader (or Write) has
-   * no effect unless the modified headers were declared as trailers by setting
-   * the "Trailer" header before the call to WriteHeader (see example)
-   * To suppress implicit response headers, set their value to nil.
-   * Example: https://golang.org/pkg/net/http/#example_ResponseWriter_trailers
-   */
-  header(): http.Header
- }
- interface Response {
-  /**
-   * Before registers a function which is called just before the response is written.
-   */
-  before(fn: () => void): void
- }
- interface Response {
-  /**
-   * After registers a function which is called just after the response is written.
-   * If the `Content-Length` is unknown, none of the after function is executed.
-   */
-  after(fn: () => void): void
- }
- interface Response {
-  /**
-   * WriteHeader sends an HTTP response header with status code. If WriteHeader is
-   * not called explicitly, the first call to Write will trigger an implicit
-   * WriteHeader(http.StatusOK). Thus explicit calls to WriteHeader are mainly
-   * used to send error codes.
-   */
-  writeHeader(code: number): void
- }
- interface Response {
-  /**
-   * Write writes the data to the connection as part of an HTTP reply.
-   */
-  write(b: string|Array<number>): number
- }
- interface Response {
-  /**
-   * Flush implements the http.Flusher interface to allow an HTTP handler to flush
-   * buffered data to the client.
-   * See [http.Flusher](https://golang.org/pkg/net/http/#Flusher)
-   */
-  flush(): void
- }
- interface Response {
-  /**
-   * Hijack implements the http.Hijacker interface to allow an HTTP handler to
-   * take over the connection.
-   * See [http.Hijacker](https://golang.org/pkg/net/http/#Hijacker)
-   */
-  hijack(): [net.Conn, (bufio.ReadWriter)]
- }
- interface Response {
-  /**
-   * Unwrap returns the original http.ResponseWriter.
-   * ResponseController can be used to access the original http.ResponseWriter.
-   * See [https://go.dev/blog/go1.20]
-   */
-  unwrap(): http.ResponseWriter
- }
- interface Routes {
-  /**
-   * Reverse reverses route to URL string by replacing path parameters with given params values.
-   */
-  reverse(name: string, ...params: {
-   }[]): string
- }
- interface Routes {
-  /**
-   * FindByMethodPath searched for matching route info by method and path
-   */
-  findByMethodPath(method: string, path: string): RouteInfo
- }
- interface Routes {
-  /**
-   * FilterByMethod searched for matching route info by method
-   */
-  filterByMethod(method: string): Routes
- }
- interface Routes {
-  /**
-   * FilterByPath searched for matching route info by path
-   */
-  filterByPath(path: string): Routes
- }
- interface Routes {
-  /**
-   * FilterByName searched for matching route info by name
-   */
-  filterByName(name: string): Routes
- }
- /**
-  * Router is interface for routing request contexts to registered routes.
-  * 
-  * Contract between Echo/Context instance and the router:
-  * ```
-  *   - all routes must be added through methods on echo.Echo instance.
-  *     Reason: Echo instance uses RouteInfo.Params() length to allocate slice for paths parameters (see `Echo.contextPathParamAllocSize`).
-  *   - Router must populate Context during Router.Route call with:
-  *   - RoutableContext.SetPath
-  *   - RoutableContext.SetRawPathParams (IMPORTANT! with same slice pointer that c.RawPathParams() returns)
-  *   - RoutableContext.SetRouteInfo
-  *     And optionally can set additional information to Context with RoutableContext.Set
-  * ```
-  */
- interface Router {
-  [key:string]: any;
-  /**
-   * Add registers Routable with the Router and returns registered RouteInfo
-   */
-  add(routable: Routable): RouteInfo
-  /**
-   * Remove removes route from the Router
-   */
-  remove(method: string, path: string): void
-  /**
-   * Routes returns information about all registered routes
-   */
-  routes(): Routes
-  /**
-   * Route searches Router for matching route and applies it to the given context. In case when no matching method
-   * was not found (405) or no matching route exists for path (404), router will return its implementation of 405/404
-   * handler function.
-   */
-  route(c: RoutableContext): HandlerFunc
- }
- /**
-  * Routable is interface for registering Route with Router. During route registration process the Router will
-  * convert Routable to RouteInfo with ToRouteInfo method. By creating custom implementation of Routable additional
-  * information about registered route can be stored in Routes (i.e. privileges used with route etc.)
-  */
- interface Routable {
-  [key:string]: any;
-  /**
-   * ToRouteInfo converts Routable to RouteInfo
-   * 
-   * This method is meant to be used by Router after it parses url for path parameters, to store information about
-   * route just added.
-   */
-  toRouteInfo(params: Array<string>): RouteInfo
-  /**
-   * ToRoute converts Routable to Route which Router uses to register the method handler for path.
-   * 
-   * This method is meant to be used by Router to get fields (including handler and middleware functions) needed to
-   * add Route to Router.
-   */
-  toRoute(): Route
-  /**
-   * ForGroup recreates routable with added group prefix and group middlewares it is grouped to.
-   * 
-   * Is necessary for Echo.Group to be able to add/register Routable with Router and having group prefix and group
-   * middlewares included in actually registered Route.
-   */
-  forGroup(pathPrefix: string, middlewares: Array<MiddlewareFunc>): Routable
- }
- /**
-  * Routes is collection of RouteInfo instances with various helper methods.
-  */
- interface Routes extends Array<RouteInfo>{}
- /**
-  * RouteInfo describes registered route base fields.
-  * Method+Path pair uniquely identifies the Route. Name can have duplicates.
-  */
- interface RouteInfo {
-  [key:string]: any;
-  method(): string
-  path(): string
-  name(): string
-  params(): Array<string>
-  /**
-   * Reverse reverses route to URL string by replacing path parameters with given params values.
-   */
-  reverse(...params: {
-  }[]): string
- }
- /**
-  * PathParams is collections of PathParam instances with various helper methods
-  */
- interface PathParams extends Array<PathParam>{}
- interface PathParams {
-  /**
-   * Get returns path parameter value for given name or default value.
-   */
-  get(name: string, defaultValue: string): string
- }
-}
-
-/**
- * Package oauth2 provides support for making
- * OAuth2 authorized and authenticated HTTP requests,
- * as specified in RFC 6749.
- * It can additionally grant authorization with Bearer JWT.
- */
-/**
- * Copyright 2023 The Go Authors. All rights reserved.
- * Use of this source code is governed by a BSD-style
- * license that can be found in the LICENSE file.
- */
-namespace oauth2 {
- /**
-  * An AuthCodeOption is passed to Config.AuthCodeURL.
-  */
- interface AuthCodeOption {
-  [key:string]: any;
- }
- /**
-  * Token represents the credentials used to authorize
-  * the requests to access protected resources on the OAuth 2.0
-  * provider's backend.
-  * 
-  * Most users of this package should not access fields of Token
-  * directly. They're exported mostly for use by related packages
-  * implementing derivative OAuth2 flows.
-  */
- interface Token {
-  /**
-   * AccessToken is the token that authorizes and authenticates
-   * the requests.
-   */
-  accessToken: string
-  /**
-   * TokenType is the type of token.
-   * The Type method returns either this or "Bearer", the default.
-   */
-  tokenType: string
-  /**
-   * RefreshToken is a token that's used by the application
-   * (as opposed to the user) to refresh the access token
-   * if it expires.
-   */
-  refreshToken: string
-  /**
-   * Expiry is the optional expiration time of the access token.
-   * 
-   * If zero, TokenSource implementations will reuse the same
-   * token forever and RefreshToken or equivalent
-   * mechanisms for that TokenSource will not be used.
-   */
-  expiry: time.Time
- }
- interface Token {
-  /**
-   * Type returns t.TokenType if non-empty, else "Bearer".
-   */
-  type(): string
- }
- interface Token {
-  /**
-   * SetAuthHeader sets the Authorization header to r using the access
-   * token in t.
-   * 
-   * This method is unnecessary when using Transport or an HTTP Client
-   * returned by this package.
-   */
-  setAuthHeader(r: http.Request): void
- }
- interface Token {
-  /**
-   * WithExtra returns a new Token that's a clone of t, but using the
-   * provided raw extra map. This is only intended for use by packages
-   * implementing derivative OAuth2 flows.
-   */
-  withExtra(extra: {
-   }): (Token)
- }
- interface Token {
-  /**
-   * Extra returns an extra field.
-   * Extra fields are key-value pairs returned by the server as a
-   * part of the token retrieval response.
-   */
-  extra(key: string): {
- }
- }
- interface Token {
-  /**
-   * Valid reports whether t is non-nil, has an AccessToken, and is not expired.
-   */
-  valid(): boolean
- }
-}
-
-namespace settings {
- // @ts-ignore
- import validation = ozzo_validation
- interface TokenConfig {
-  secret: string
-  duration: number
- }
- interface TokenConfig {
-  /**
-   * Validate makes TokenConfig validatable by implementing [validation.Validatable] interface.
-   */
-  validate(): void
- }
- interface SmtpConfig {
-  enabled: boolean
-  host: string
-  port: number
-  username: string
-  password: string
-  /**
-   * SMTP AUTH - PLAIN (default) or LOGIN
-   */
-  authMethod: string
-  /**
-   * Whether to enforce TLS encryption for the mail server connection.
-   * 
-   * When set to false StartTLS command is send, leaving the server
-   * to decide whether to upgrade the connection or not.
-   */
-  tls: boolean
-  /**
-   * LocalName is optional domain name or IP address used for the
-   * EHLO/HELO exchange (if not explicitly set, defaults to "localhost").
-   * 
-   * This is required only by some SMTP servers, such as Gmail SMTP-relay.
-   */
-  localName: string
- }
- interface SmtpConfig {
-  /**
-   * Validate makes SmtpConfig validatable by implementing [validation.Validatable] interface.
-   */
-  validate(): void
- }
- interface S3Config {
-  enabled: boolean
-  bucket: string
-  region: string
-  endpoint: string
-  accessKey: string
-  secret: string
-  forcePathStyle: boolean
- }
- interface S3Config {
-  /**
-   * Validate makes S3Config validatable by implementing [validation.Validatable] interface.
-   */
-  validate(): void
- }
- interface BackupsConfig {
-  /**
-   * Cron is a cron expression to schedule auto backups, eg. "* * * * *".
-   * 
-   * Leave it empty to disable the auto backups functionality.
-   */
-  cron: string
-  /**
-   * CronMaxKeep is the the max number of cron generated backups to
-   * keep before removing older entries.
-   * 
-   * This field works only when the cron config has valid cron expression.
-   */
-  cronMaxKeep: number
-  /**
-   * S3 is an optional S3 storage config specifying where to store the app backups.
-   */
-  s3: S3Config
- }
- interface BackupsConfig {
-  /**
-   * Validate makes BackupsConfig validatable by implementing [validation.Validatable] interface.
-   */
-  validate(): void
- }
- interface MetaConfig {
-  appName: string
-  appUrl: string
-  hideControls: boolean
-  senderName: string
-  senderAddress: string
-  verificationTemplate: EmailTemplate
-  resetPasswordTemplate: EmailTemplate
-  confirmEmailChangeTemplate: EmailTemplate
- }
- interface MetaConfig {
-  /**
-   * Validate makes MetaConfig validatable by implementing [validation.Validatable] interface.
-   */
-  validate(): void
- }
- interface LogsConfig {
-  maxDays: number
-  minLevel: number
-  logIp: boolean
- }
- interface LogsConfig {
-  /**
-   * Validate makes LogsConfig validatable by implementing [validation.Validatable] interface.
-   */
-  validate(): void
- }
- interface AuthProviderConfig {
-  enabled: boolean
-  clientId: string
-  clientSecret: string
-  authUrl: string
-  tokenUrl: string
-  userApiUrl: string
-  displayName: string
-  pkce?: boolean
- }
- interface AuthProviderConfig {
-  /**
-   * Validate makes `ProviderConfig` validatable by implementing [validation.Validatable] interface.
-   */
-  validate(): void
- }
- interface AuthProviderConfig {
-  /**
-   * SetupProvider loads the current AuthProviderConfig into the specified provider.
-   */
-  setupProvider(provider: auth.Provider): void
- }
- /**
-  * Deprecated: Will be removed in v0.9+
-  */
- interface EmailAuthConfig {
-  enabled: boolean
-  exceptDomains: Array<string>
-  onlyDomains: Array<string>
-  minPasswordLength: number
- }
- interface EmailAuthConfig {
-  /**
-   * Deprecated: Will be removed in v0.9+
-   */
-  validate(): void
- }
-}
-
-/**
- * Package daos handles common PocketBase DB model manipulations.
- * 
- * Think of daos as DB repository and service layer in one.
- */
-namespace daos {
- interface LogsStatsItem {
-  total: number
-  date: types.DateTime
- }
- /**
-  * ExpandFetchFunc defines the function that is used to fetch the expanded relation records.
-  */
- interface ExpandFetchFunc {(relCollection: models.Collection, relIds: Array<string>): Array<(models.Record | undefined)> }
- // @ts-ignore
- import validation = ozzo_validation
 }
 
 /**
@@ -17733,7 +16901,6 @@ namespace core {
  }
  interface TerminateEvent {
   app: App
-  isRestart: boolean
  }
  interface ServeEvent {
   app: App
@@ -17745,12 +16912,12 @@ namespace core {
   httpContext: echo.Context
   error: Error
  }
- type _subvMjns = BaseModelEvent
- interface ModelEvent extends _subvMjns {
+ type _subMXjwv = BaseModelEvent
+ interface ModelEvent extends _subMXjwv {
   dao?: daos.Dao
  }
- type _subdcujI = BaseCollectionEvent
- interface MailerRecordEvent extends _subdcujI {
+ type _subDRgVC = BaseCollectionEvent
+ interface MailerRecordEvent extends _subDRgVC {
   mailClient: mailer.Mailer
   message?: mailer.Message
   record?: models.Record
@@ -17790,50 +16957,50 @@ namespace core {
   oldSettings?: settings.Settings
   newSettings?: settings.Settings
  }
- type _subGrKbX = BaseCollectionEvent
- interface RecordsListEvent extends _subGrKbX {
+ type _subEJYts = BaseCollectionEvent
+ interface RecordsListEvent extends _subEJYts {
   httpContext: echo.Context
   records: Array<(models.Record | undefined)>
   result?: search.Result
  }
- type _subIwMHT = BaseCollectionEvent
- interface RecordViewEvent extends _subIwMHT {
+ type _subOinrv = BaseCollectionEvent
+ interface RecordViewEvent extends _subOinrv {
   httpContext: echo.Context
   record?: models.Record
  }
- type _subOqahU = BaseCollectionEvent
- interface RecordCreateEvent extends _subOqahU {
-  httpContext: echo.Context
-  record?: models.Record
-  uploadedFiles: _TygojaDict
- }
- type _submpknU = BaseCollectionEvent
- interface RecordUpdateEvent extends _submpknU {
+ type _submiPoa = BaseCollectionEvent
+ interface RecordCreateEvent extends _submiPoa {
   httpContext: echo.Context
   record?: models.Record
   uploadedFiles: _TygojaDict
  }
- type _subAqoUP = BaseCollectionEvent
- interface RecordDeleteEvent extends _subAqoUP {
+ type _subHsFhD = BaseCollectionEvent
+ interface RecordUpdateEvent extends _subHsFhD {
+  httpContext: echo.Context
+  record?: models.Record
+  uploadedFiles: _TygojaDict
+ }
+ type _subPHnQS = BaseCollectionEvent
+ interface RecordDeleteEvent extends _subPHnQS {
   httpContext: echo.Context
   record?: models.Record
  }
- type _subIkmaE = BaseCollectionEvent
- interface RecordAuthEvent extends _subIkmaE {
+ type _subXZcUX = BaseCollectionEvent
+ interface RecordAuthEvent extends _subXZcUX {
   httpContext: echo.Context
   record?: models.Record
   token: string
   meta: any
  }
- type _subnwRBC = BaseCollectionEvent
- interface RecordAuthWithPasswordEvent extends _subnwRBC {
+ type _subxMwgq = BaseCollectionEvent
+ interface RecordAuthWithPasswordEvent extends _subxMwgq {
   httpContext: echo.Context
   record?: models.Record
   identity: string
   password: string
  }
- type _subZZZvX = BaseCollectionEvent
- interface RecordAuthWithOAuth2Event extends _subZZZvX {
+ type _subkSFpd = BaseCollectionEvent
+ interface RecordAuthWithOAuth2Event extends _subkSFpd {
   httpContext: echo.Context
   providerName: string
   providerClient: auth.Provider
@@ -17841,49 +17008,49 @@ namespace core {
   oAuth2User?: auth.AuthUser
   isNewRecord: boolean
  }
- type _subsemLM = BaseCollectionEvent
- interface RecordAuthRefreshEvent extends _subsemLM {
+ type _subIuDnk = BaseCollectionEvent
+ interface RecordAuthRefreshEvent extends _subIuDnk {
   httpContext: echo.Context
   record?: models.Record
  }
- type _subJOkzx = BaseCollectionEvent
- interface RecordRequestPasswordResetEvent extends _subJOkzx {
+ type _subvsMlg = BaseCollectionEvent
+ interface RecordRequestPasswordResetEvent extends _subvsMlg {
   httpContext: echo.Context
   record?: models.Record
  }
- type _subgZQlY = BaseCollectionEvent
- interface RecordConfirmPasswordResetEvent extends _subgZQlY {
+ type _subpLbDV = BaseCollectionEvent
+ interface RecordConfirmPasswordResetEvent extends _subpLbDV {
   httpContext: echo.Context
   record?: models.Record
  }
- type _suboowBk = BaseCollectionEvent
- interface RecordRequestVerificationEvent extends _suboowBk {
+ type _subrsqIh = BaseCollectionEvent
+ interface RecordRequestVerificationEvent extends _subrsqIh {
   httpContext: echo.Context
   record?: models.Record
  }
- type _subsZTCt = BaseCollectionEvent
- interface RecordConfirmVerificationEvent extends _subsZTCt {
+ type _subWTsSn = BaseCollectionEvent
+ interface RecordConfirmVerificationEvent extends _subWTsSn {
   httpContext: echo.Context
   record?: models.Record
  }
- type _subSwLoG = BaseCollectionEvent
- interface RecordRequestEmailChangeEvent extends _subSwLoG {
+ type _subHVUkA = BaseCollectionEvent
+ interface RecordRequestEmailChangeEvent extends _subHVUkA {
   httpContext: echo.Context
   record?: models.Record
  }
- type _subHibFa = BaseCollectionEvent
- interface RecordConfirmEmailChangeEvent extends _subHibFa {
+ type _subktgWO = BaseCollectionEvent
+ interface RecordConfirmEmailChangeEvent extends _subktgWO {
   httpContext: echo.Context
   record?: models.Record
  }
- type _subQcIIX = BaseCollectionEvent
- interface RecordListExternalAuthsEvent extends _subQcIIX {
+ type _subgeCCb = BaseCollectionEvent
+ interface RecordListExternalAuthsEvent extends _subgeCCb {
   httpContext: echo.Context
   record?: models.Record
   externalAuths: Array<(models.ExternalAuth | undefined)>
  }
- type _subWGgXE = BaseCollectionEvent
- interface RecordUnlinkExternalAuthEvent extends _subWGgXE {
+ type _subLfRca = BaseCollectionEvent
+ interface RecordUnlinkExternalAuthEvent extends _subLfRca {
   httpContext: echo.Context
   record?: models.Record
   externalAuth?: models.ExternalAuth
@@ -17937,38 +17104,74 @@ namespace core {
   collections: Array<(models.Collection | undefined)>
   result?: search.Result
  }
- type _subUooyD = BaseCollectionEvent
- interface CollectionViewEvent extends _subUooyD {
+ type _subDriyX = BaseCollectionEvent
+ interface CollectionViewEvent extends _subDriyX {
   httpContext: echo.Context
  }
- type _subgibfO = BaseCollectionEvent
- interface CollectionCreateEvent extends _subgibfO {
+ type _subWrxuH = BaseCollectionEvent
+ interface CollectionCreateEvent extends _subWrxuH {
   httpContext: echo.Context
  }
- type _subbdqYt = BaseCollectionEvent
- interface CollectionUpdateEvent extends _subbdqYt {
+ type _subidxFG = BaseCollectionEvent
+ interface CollectionUpdateEvent extends _subidxFG {
   httpContext: echo.Context
  }
- type _subzrNCI = BaseCollectionEvent
- interface CollectionDeleteEvent extends _subzrNCI {
+ type _subRHlpB = BaseCollectionEvent
+ interface CollectionDeleteEvent extends _subRHlpB {
   httpContext: echo.Context
  }
  interface CollectionsImportEvent {
   httpContext: echo.Context
   collections: Array<(models.Collection | undefined)>
  }
- type _subBqelU = BaseModelEvent
- interface FileTokenEvent extends _subBqelU {
+ type _subnvfcR = BaseModelEvent
+ interface FileTokenEvent extends _subnvfcR {
   httpContext: echo.Context
   token: string
  }
- type _subNnhQf = BaseCollectionEvent
- interface FileDownloadEvent extends _subNnhQf {
+ type _subHcQic = BaseCollectionEvent
+ interface FileDownloadEvent extends _subHcQic {
   httpContext: echo.Context
   record?: models.Record
   fileField?: schema.SchemaField
   servedPath: string
   servedName: string
+ }
+}
+
+namespace store {
+}
+
+/**
+ * Package url parses URLs and implements query escaping.
+ */
+namespace url {
+ /**
+  * The Userinfo type is an immutable encapsulation of username and
+  * password details for a URL. An existing Userinfo value is guaranteed
+  * to have a username set (potentially empty, as allowed by RFC 2396),
+  * and optionally a password.
+  */
+ interface Userinfo {
+ }
+ interface Userinfo {
+  /**
+   * Username returns the username.
+   */
+  username(): string
+ }
+ interface Userinfo {
+  /**
+   * Password returns the password in case it is set, and whether it is set.
+   */
+  password(): [string, boolean]
+ }
+ interface Userinfo {
+  /**
+   * String returns the encoded userinfo information in the standard form
+   * of "username[:password]".
+   */
+  string(): string
  }
 }
 
@@ -18047,10 +17250,6 @@ namespace core {
  * To force a particular resolver while also printing debugging information,
  * join the two settings by a plus sign, as in GODEBUG=netdns=go+1.
  * 
- * On macOS, if Go code that uses the net package is built with
- * -buildmode=c-archive, linking the resulting archive into a C program
- * requires passing -lresolv when linking the C code.
- * 
  * On Plan 9, the resolver always accesses /net/cs and /net/dns.
  * 
  * On Windows, in Go 1.18.x and earlier, the resolver always used C
@@ -18071,6 +17270,87 @@ namespace net {
  }
 }
 
+namespace hook {
+ /**
+  * Handler defines a hook handler function.
+  */
+ interface Handler<T> {(e: T): void }
+ /**
+  * wrapped local Hook embedded struct to limit the public API surface.
+  */
+ type _subiKeYX<T> = Hook<T>
+ interface mainHook<T> extends _subiKeYX<T> {
+ }
+}
+
+namespace subscriptions {
+ /**
+  * Message defines a client's channel data.
+  */
+ interface Message {
+  name: string
+  data: string|Array<number>
+ }
+ /**
+  * Client is an interface for a generic subscription client.
+  */
+ interface Client {
+  [key:string]: any;
+  /**
+   * Id Returns the unique id of the client.
+   */
+  id(): string
+  /**
+   * Channel returns the client's communication channel.
+   */
+  channel(): undefined
+  /**
+   * Subscriptions returns all subscriptions to which the client has subscribed to.
+   */
+  subscriptions(): _TygojaDict
+  /**
+   * Subscribe subscribes the client to the provided subscriptions list.
+   */
+  subscribe(...subs: string[]): void
+  /**
+   * Unsubscribe unsubscribes the client from the provided subscriptions list.
+   */
+  unsubscribe(...subs: string[]): void
+  /**
+   * HasSubscription checks if the client is subscribed to `sub`.
+   */
+  hasSubscription(sub: string): boolean
+  /**
+   * Set stores any value to the client's context.
+   */
+  set(key: string, value: any): void
+  /**
+   * Unset removes a single value from the client's context.
+   */
+  unset(key: string): void
+  /**
+   * Get retrieves the key value from the client's context.
+   */
+  get(key: string): any
+  /**
+   * Discard marks the client as "discarded", meaning that it
+   * shouldn't be used anymore for sending new messages.
+   * 
+   * It is safe to call Discard() multiple times.
+   */
+  discard(): void
+  /**
+   * IsDiscarded indicates whether the client has been "discarded"
+   * and should no longer be used.
+   */
+  isDiscarded(): boolean
+  /**
+   * Send sends the specified message to the client's channel (if not discarded).
+   */
+  send(m: Message): void
+ }
+}
+
 /**
  * Package bufio implements buffered I/O. It wraps an io.Reader or io.Writer
  * object, creating another object (Reader or Writer) that also implements
@@ -18081,8 +17361,8 @@ namespace bufio {
   * ReadWriter stores pointers to a Reader and a Writer.
   * It implements io.ReadWriter.
   */
- type _subuTbZS = Reader&Writer
- interface ReadWriter extends _subuTbZS {
+ type _sublmjLP = Reader&Writer
+ interface ReadWriter extends _sublmjLP {
  }
 }
 
@@ -18152,97 +17432,6 @@ namespace multipart {
  }
 }
 
-namespace store {
-}
-
-/**
- * Package url parses URLs and implements query escaping.
- */
-namespace url {
- /**
-  * The Userinfo type is an immutable encapsulation of username and
-  * password details for a URL. An existing Userinfo value is guaranteed
-  * to have a username set (potentially empty, as allowed by RFC 2396),
-  * and optionally a password.
-  */
- interface Userinfo {
- }
- interface Userinfo {
-  /**
-   * Username returns the username.
-   */
-  username(): string
- }
- interface Userinfo {
-  /**
-   * Password returns the password in case it is set, and whether it is set.
-   */
-  password(): [string, boolean]
- }
- interface Userinfo {
-  /**
-   * String returns the encoded userinfo information in the standard form
-   * of "username[:password]".
-   */
-  string(): string
- }
-}
-
-/**
- * Package types implements some commonly used db serializable types
- * like datetime, json, etc.
- */
-namespace types {
- /**
-  * JsonRaw defines a json value type that is safe for db read/write.
-  */
- interface JsonRaw extends Array<number>{}
- interface JsonRaw {
-  /**
-   * String returns the current JsonRaw instance as a json encoded string.
-   */
-  string(): string
- }
- interface JsonRaw {
-  /**
-   * MarshalJSON implements the [json.Marshaler] interface.
-   */
-  marshalJSON(): string|Array<number>
- }
- interface JsonRaw {
-  /**
-   * UnmarshalJSON implements the [json.Unmarshaler] interface.
-   */
-  unmarshalJSON(b: string|Array<number>): void
- }
- interface JsonRaw {
-  /**
-   * Value implements the [driver.Valuer] interface.
-   */
-  value(): any
- }
- interface JsonRaw {
-  /**
-   * Scan implements [sql.Scanner] interface to scan the provided value
-   * into the current JsonRaw instance.
-   */
-  scan(value: any): void
- }
-}
-
-namespace search {
- /**
-  * Result defines the returned search result structure.
-  */
- interface Result {
-  page: number
-  perPage: number
-  totalItems: number
-  totalPages: number
-  items: any
- }
-}
-
 /**
  * Package http provides HTTP client and server implementations.
  * 
@@ -18257,7 +17446,7 @@ namespace search {
  * 		url.Values{"key": {"Value"}, "id": {"123"}})
  * ```
  * 
- * The caller must close the response body when finished with it:
+ * The client must close the response body when finished with it:
  * 
  * ```
  * 	resp, err := http.Get("http://example.com/")
@@ -18268,8 +17457,6 @@ namespace search {
  * 	body, err := io.ReadAll(resp.Body)
  * 	// ...
  * ```
- * 
- * # Clients and Transports
  * 
  * For control over HTTP client headers, redirect policy, and other
  * settings, create a Client:
@@ -18305,8 +17492,6 @@ namespace search {
  * Clients and Transports are safe for concurrent use by multiple
  * goroutines and for efficiency should only be created once and re-used.
  * 
- * # Servers
- * 
  * ListenAndServe starts an HTTP server with a given address and handler.
  * The handler is usually nil, which means to use DefaultServeMux.
  * Handle and HandleFunc add handlers to DefaultServeMux:
@@ -18335,13 +17520,11 @@ namespace search {
  * 	log.Fatal(s.ListenAndServe())
  * ```
  * 
- * # HTTP/2
- * 
  * Starting with Go 1.6, the http package has transparent support for the
  * HTTP/2 protocol when using HTTPS. Programs that must disable HTTP/2
  * can do so by setting Transport.TLSNextProto (for clients) or
  * Server.TLSNextProto (for servers) to a non-nil, empty
- * map. Alternatively, the following GODEBUG settings are
+ * map. Alternatively, the following GODEBUG environment variables are
  * currently supported:
  * 
  * ```
@@ -18351,7 +17534,9 @@ namespace search {
  * 	GODEBUG=http2debug=2   # ... even more verbose, with frame dumps
  * ```
  * 
- * Please report any issues before disabling HTTP/2 support: https://golang.org/s/http2bug
+ * The GODEBUG variables are not covered by Go's API compatibility
+ * promise. Please report any issues before disabling HTTP/2
+ * support: https://golang.org/s/http2bug
  * 
  * The http package's Transport and Server both automatically enable
  * HTTP/2 support for simple configurations. To enable HTTP/2 for more
@@ -18376,36 +17561,6 @@ namespace http {
  import mathrand = rand
  // @ts-ignore
  import urlpkg = url
-}
-
-namespace mailer {
- /**
-  * Message defines a generic email message struct.
-  */
- interface Message {
-  from: mail.Address
-  to: Array<mail.Address>
-  bcc: Array<mail.Address>
-  cc: Array<mail.Address>
-  subject: string
-  html: string
-  text: string
-  headers: _TygojaDict
-  attachments: _TygojaDict
- }
-}
-
-namespace hook {
- /**
-  * Handler defines a hook handler function.
-  */
- interface Handler<T> {(e: T): void }
- /**
-  * wrapped local Hook embedded struct to limit the public API surface.
-  */
- type _subPTIdR<T> = Hook<T>
- interface mainHook<T> extends _subPTIdR<T> {
- }
 }
 
 /**
@@ -18489,11 +17644,11 @@ namespace echo {
   /**
    * Request returns `*http.Request`.
    */
-  request(): (http.Request)
+  request(): (http.Request | undefined)
   /**
    * RawPathParams returns raw path pathParams value. Allocation of PathParams is handled by Context.
    */
-  rawPathParams(): (PathParams)
+  rawPathParams(): (PathParams | undefined)
   /**
    * SetRawPathParams replaces any existing param values with new values for this context lifetime (request).
    * Do not set any other value than what you got from RawPathParams as allocation of PathParams is handled by Context.
@@ -18523,6 +17678,78 @@ namespace echo {
  }
 }
 
+namespace mailer {
+ /**
+  * Message defines a generic email message struct.
+  */
+ interface Message {
+  from: mail.Address
+  to: Array<mail.Address>
+  bcc: Array<mail.Address>
+  cc: Array<mail.Address>
+  subject: string
+  html: string
+  text: string
+  headers: _TygojaDict
+  attachments: _TygojaDict
+ }
+}
+
+/**
+ * Package types implements some commonly used db serializable types
+ * like datetime, json, etc.
+ */
+namespace types {
+ /**
+  * JsonRaw defines a json value type that is safe for db read/write.
+  */
+ interface JsonRaw extends string|Array<number>{}
+ interface JsonRaw {
+  /**
+   * String returns the current JsonRaw instance as a json encoded string.
+   */
+  string(): string
+ }
+ interface JsonRaw {
+  /**
+   * MarshalJSON implements the [json.Marshaler] interface.
+   */
+  marshalJSON(): string|Array<number>
+ }
+ interface JsonRaw {
+  /**
+   * UnmarshalJSON implements the [json.Unmarshaler] interface.
+   */
+  unmarshalJSON(b: string|Array<number>): void
+ }
+ interface JsonRaw {
+  /**
+   * Value implements the [driver.Valuer] interface.
+   */
+  value(): any
+ }
+ interface JsonRaw {
+  /**
+   * Scan implements [sql.Scanner] interface to scan the provided value
+   * into the current JsonRaw instance.
+   */
+  scan(value: any): void
+ }
+}
+
+namespace search {
+ /**
+  * Result defines the returned search result structure.
+  */
+ interface Result {
+  page: number
+  perPage: number
+  totalItems: number
+  totalPages: number
+  items: any
+ }
+}
+
 namespace settings {
  // @ts-ignore
  import validation = ozzo_validation
@@ -18543,623 +17770,6 @@ namespace settings {
    * template and returns its components as ready-to-use strings.
    */
   resolve(appName: string, appUrl: string): string
- }
-}
-
-/**
- * Package slog provides structured logging,
- * in which log records include a message,
- * a severity level, and various other attributes
- * expressed as key-value pairs.
- * 
- * It defines a type, [Logger],
- * which provides several methods (such as [Logger.Info] and [Logger.Error])
- * for reporting events of interest.
- * 
- * Each Logger is associated with a [Handler].
- * A Logger output method creates a [Record] from the method arguments
- * and passes it to the Handler, which decides how to handle it.
- * There is a default Logger accessible through top-level functions
- * (such as [Info] and [Error]) that call the corresponding Logger methods.
- * 
- * A log record consists of a time, a level, a message, and a set of key-value
- * pairs, where the keys are strings and the values may be of any type.
- * As an example,
- * 
- * ```
- * 	slog.Info("hello", "count", 3)
- * ```
- * 
- * creates a record containing the time of the call,
- * a level of Info, the message "hello", and a single
- * pair with key "count" and value 3.
- * 
- * The [Info] top-level function calls the [Logger.Info] method on the default Logger.
- * In addition to [Logger.Info], there are methods for Debug, Warn and Error levels.
- * Besides these convenience methods for common levels,
- * there is also a [Logger.Log] method which takes the level as an argument.
- * Each of these methods has a corresponding top-level function that uses the
- * default logger.
- * 
- * The default handler formats the log record's message, time, level, and attributes
- * as a string and passes it to the [log] package.
- * 
- * ```
- * 	2022/11/08 15:28:26 INFO hello count=3
- * ```
- * 
- * For more control over the output format, create a logger with a different handler.
- * This statement uses [New] to create a new logger with a TextHandler
- * that writes structured records in text form to standard error:
- * 
- * ```
- * 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
- * ```
- * 
- * [TextHandler] output is a sequence of key=value pairs, easily and unambiguously
- * parsed by machine. This statement:
- * 
- * ```
- * 	logger.Info("hello", "count", 3)
- * ```
- * 
- * produces this output:
- * 
- * ```
- * 	time=2022-11-08T15:28:26.000-05:00 level=INFO msg=hello count=3
- * ```
- * 
- * The package also provides [JSONHandler], whose output is line-delimited JSON:
- * 
- * ```
- * 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
- * 	logger.Info("hello", "count", 3)
- * ```
- * 
- * produces this output:
- * 
- * ```
- * 	{"time":"2022-11-08T15:28:26.000000000-05:00","level":"INFO","msg":"hello","count":3}
- * ```
- * 
- * Both [TextHandler] and [JSONHandler] can be configured with [HandlerOptions].
- * There are options for setting the minimum level (see Levels, below),
- * displaying the source file and line of the log call, and
- * modifying attributes before they are logged.
- * 
- * Setting a logger as the default with
- * 
- * ```
- * 	slog.SetDefault(logger)
- * ```
- * 
- * will cause the top-level functions like [Info] to use it.
- * [SetDefault] also updates the default logger used by the [log] package,
- * so that existing applications that use [log.Printf] and related functions
- * will send log records to the logger's handler without needing to be rewritten.
- * 
- * Some attributes are common to many log calls.
- * For example, you may wish to include the URL or trace identifier of a server request
- * with all log events arising from the request.
- * Rather than repeat the attribute with every log call, you can use [Logger.With]
- * to construct a new Logger containing the attributes:
- * 
- * ```
- * 	logger2 := logger.With("url", r.URL)
- * ```
- * 
- * The arguments to With are the same key-value pairs used in [Logger.Info].
- * The result is a new Logger with the same handler as the original, but additional
- * attributes that will appear in the output of every call.
- * 
- * # Levels
- * 
- * A [Level] is an integer representing the importance or severity of a log event.
- * The higher the level, the more severe the event.
- * This package defines constants for the most common levels,
- * but any int can be used as a level.
- * 
- * In an application, you may wish to log messages only at a certain level or greater.
- * One common configuration is to log messages at Info or higher levels,
- * suppressing debug logging until it is needed.
- * The built-in handlers can be configured with the minimum level to output by
- * setting [HandlerOptions.Level].
- * The program's `main` function typically does this.
- * The default value is LevelInfo.
- * 
- * Setting the [HandlerOptions.Level] field to a [Level] value
- * fixes the handler's minimum level throughout its lifetime.
- * Setting it to a [LevelVar] allows the level to be varied dynamically.
- * A LevelVar holds a Level and is safe to read or write from multiple
- * goroutines.
- * To vary the level dynamically for an entire program, first initialize
- * a global LevelVar:
- * 
- * ```
- * 	var programLevel = new(slog.LevelVar) // Info by default
- * ```
- * 
- * Then use the LevelVar to construct a handler, and make it the default:
- * 
- * ```
- * 	h := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
- * 	slog.SetDefault(slog.New(h))
- * ```
- * 
- * Now the program can change its logging level with a single statement:
- * 
- * ```
- * 	programLevel.Set(slog.LevelDebug)
- * ```
- * 
- * # Groups
- * 
- * Attributes can be collected into groups.
- * A group has a name that is used to qualify the names of its attributes.
- * How this qualification is displayed depends on the handler.
- * [TextHandler] separates the group and attribute names with a dot.
- * [JSONHandler] treats each group as a separate JSON object, with the group name as the key.
- * 
- * Use [Group] to create a Group attribute from a name and a list of key-value pairs:
- * 
- * ```
- * 	slog.Group("request",
- * 	    "method", r.Method,
- * 	    "url", r.URL)
- * ```
- * 
- * TextHandler would display this group as
- * 
- * ```
- * 	request.method=GET request.url=http://example.com
- * ```
- * 
- * JSONHandler would display it as
- * 
- * ```
- * 	"request":{"method":"GET","url":"http://example.com"}
- * ```
- * 
- * Use [Logger.WithGroup] to qualify all of a Logger's output
- * with a group name. Calling WithGroup on a Logger results in a
- * new Logger with the same Handler as the original, but with all
- * its attributes qualified by the group name.
- * 
- * This can help prevent duplicate attribute keys in large systems,
- * where subsystems might use the same keys.
- * Pass each subsystem a different Logger with its own group name so that
- * potential duplicates are qualified:
- * 
- * ```
- * 	logger := slog.Default().With("id", systemID)
- * 	parserLogger := logger.WithGroup("parser")
- * 	parseInput(input, parserLogger)
- * ```
- * 
- * When parseInput logs with parserLogger, its keys will be qualified with "parser",
- * so even if it uses the common key "id", the log line will have distinct keys.
- * 
- * # Contexts
- * 
- * Some handlers may wish to include information from the [context.Context] that is
- * available at the call site. One example of such information
- * is the identifier for the current span when tracing is enabled.
- * 
- * The [Logger.Log] and [Logger.LogAttrs] methods take a context as a first
- * argument, as do their corresponding top-level functions.
- * 
- * Although the convenience methods on Logger (Info and so on) and the
- * corresponding top-level functions do not take a context, the alternatives ending
- * in "Context" do. For example,
- * 
- * ```
- * 	slog.InfoContext(ctx, "message")
- * ```
- * 
- * It is recommended to pass a context to an output method if one is available.
- * 
- * # Attrs and Values
- * 
- * An [Attr] is a key-value pair. The Logger output methods accept Attrs as well as
- * alternating keys and values. The statement
- * 
- * ```
- * 	slog.Info("hello", slog.Int("count", 3))
- * ```
- * 
- * behaves the same as
- * 
- * ```
- * 	slog.Info("hello", "count", 3)
- * ```
- * 
- * There are convenience constructors for [Attr] such as [Int], [String], and [Bool]
- * for common types, as well as the function [Any] for constructing Attrs of any
- * type.
- * 
- * The value part of an Attr is a type called [Value].
- * Like an [any], a Value can hold any Go value,
- * but it can represent typical values, including all numbers and strings,
- * without an allocation.
- * 
- * For the most efficient log output, use [Logger.LogAttrs].
- * It is similar to [Logger.Log] but accepts only Attrs, not alternating
- * keys and values; this allows it, too, to avoid allocation.
- * 
- * The call
- * 
- * ```
- * 	logger.LogAttrs(ctx, slog.LevelInfo, "hello", slog.Int("count", 3))
- * ```
- * 
- * is the most efficient way to achieve the same output as
- * 
- * ```
- * 	slog.Info("hello", "count", 3)
- * ```
- * 
- * # Customizing a type's logging behavior
- * 
- * If a type implements the [LogValuer] interface, the [Value] returned from its LogValue
- * method is used for logging. You can use this to control how values of the type
- * appear in logs. For example, you can redact secret information like passwords,
- * or gather a struct's fields in a Group. See the examples under [LogValuer] for
- * details.
- * 
- * A LogValue method may return a Value that itself implements [LogValuer]. The [Value.Resolve]
- * method handles these cases carefully, avoiding infinite loops and unbounded recursion.
- * Handler authors and others may wish to use Value.Resolve instead of calling LogValue directly.
- * 
- * # Wrapping output methods
- * 
- * The logger functions use reflection over the call stack to find the file name
- * and line number of the logging call within the application. This can produce
- * incorrect source information for functions that wrap slog. For instance, if you
- * define this function in file mylog.go:
- * 
- * ```
- * 	func Infof(format string, args ...any) {
- * 	    slog.Default().Info(fmt.Sprintf(format, args...))
- * 	}
- * ```
- * 
- * and you call it like this in main.go:
- * 
- * ```
- * 	Infof(slog.Default(), "hello, %s", "world")
- * ```
- * 
- * then slog will report the source file as mylog.go, not main.go.
- * 
- * A correct implementation of Infof will obtain the source location
- * (pc) and pass it to NewRecord.
- * The Infof function in the package-level example called "wrapping"
- * demonstrates how to do this.
- * 
- * # Working with Records
- * 
- * Sometimes a Handler will need to modify a Record
- * before passing it on to another Handler or backend.
- * A Record contains a mixture of simple public fields (e.g. Time, Level, Message)
- * and hidden fields that refer to state (such as attributes) indirectly. This
- * means that modifying a simple copy of a Record (e.g. by calling
- * [Record.Add] or [Record.AddAttrs] to add attributes)
- * may have unexpected effects on the original.
- * Before modifying a Record, use [Record.Clone] to
- * create a copy that shares no state with the original,
- * or create a new Record with [NewRecord]
- * and build up its Attrs by traversing the old ones with [Record.Attrs].
- * 
- * # Performance considerations
- * 
- * If profiling your application demonstrates that logging is taking significant time,
- * the following suggestions may help.
- * 
- * If many log lines have a common attribute, use [Logger.With] to create a Logger with
- * that attribute. The built-in handlers will format that attribute only once, at the
- * call to [Logger.With]. The [Handler] interface is designed to allow that optimization,
- * and a well-written Handler should take advantage of it.
- * 
- * The arguments to a log call are always evaluated, even if the log event is discarded.
- * If possible, defer computation so that it happens only if the value is actually logged.
- * For example, consider the call
- * 
- * ```
- * 	slog.Info("starting request", "url", r.URL.String())  // may compute String unnecessarily
- * ```
- * 
- * The URL.String method will be called even if the logger discards Info-level events.
- * Instead, pass the URL directly:
- * 
- * ```
- * 	slog.Info("starting request", "url", &r.URL) // calls URL.String only if needed
- * ```
- * 
- * The built-in [TextHandler] will call its String method, but only
- * if the log event is enabled.
- * Avoiding the call to String also preserves the structure of the underlying value.
- * For example [JSONHandler] emits the components of the parsed URL as a JSON object.
- * If you want to avoid eagerly paying the cost of the String call
- * without causing the handler to potentially inspect the structure of the value,
- * wrap the value in a fmt.Stringer implementation that hides its Marshal methods.
- * 
- * You can also use the [LogValuer] interface to avoid unnecessary work in disabled log
- * calls. Say you need to log some expensive value:
- * 
- * ```
- * 	slog.Debug("frobbing", "value", computeExpensiveValue(arg))
- * ```
- * 
- * Even if this line is disabled, computeExpensiveValue will be called.
- * To avoid that, define a type implementing LogValuer:
- * 
- * ```
- * 	type expensive struct { arg int }
- * 
- * 	func (e expensive) LogValue() slog.Value {
- * 	    return slog.AnyValue(computeExpensiveValue(e.arg))
- * 	}
- * ```
- * 
- * Then use a value of that type in log calls:
- * 
- * ```
- * 	slog.Debug("frobbing", "value", expensive{arg})
- * ```
- * 
- * Now computeExpensiveValue will only be called when the line is enabled.
- * 
- * The built-in handlers acquire a lock before calling [io.Writer.Write]
- * to ensure that each record is written in one piece. User-defined
- * handlers are responsible for their own locking.
- * 
- * # Writing a handler
- * 
- * For a guide to writing a custom handler, see https://golang.org/s/slog-handler-guide.
- */
-namespace slog {
- /**
-  * An Attr is a key-value pair.
-  */
- interface Attr {
-  key: string
-  value: Value
- }
- interface Attr {
-  /**
-   * Equal reports whether a and b have equal keys and values.
-   */
-  equal(b: Attr): boolean
- }
- interface Attr {
-  string(): string
- }
- /**
-  * A Handler handles log records produced by a Logger..
-  * 
-  * A typical handler may print log records to standard error,
-  * or write them to a file or database, or perhaps augment them
-  * with additional attributes and pass them on to another handler.
-  * 
-  * Any of the Handler's methods may be called concurrently with itself
-  * or with other methods. It is the responsibility of the Handler to
-  * manage this concurrency.
-  * 
-  * Users of the slog package should not invoke Handler methods directly.
-  * They should use the methods of [Logger] instead.
-  */
- interface Handler {
-  [key:string]: any;
-  /**
-   * Enabled reports whether the handler handles records at the given level.
-   * The handler ignores records whose level is lower.
-   * It is called early, before any arguments are processed,
-   * to save effort if the log event should be discarded.
-   * If called from a Logger method, the first argument is the context
-   * passed to that method, or context.Background() if nil was passed
-   * or the method does not take a context.
-   * The context is passed so Enabled can use its values
-   * to make a decision.
-   */
-  enabled(_arg0: context.Context, _arg1: Level): boolean
-  /**
-   * Handle handles the Record.
-   * It will only be called when Enabled returns true.
-   * The Context argument is as for Enabled.
-   * It is present solely to provide Handlers access to the context's values.
-   * Canceling the context should not affect record processing.
-   * (Among other things, log messages may be necessary to debug a
-   * cancellation-related problem.)
-   * 
-   * Handle methods that produce output should observe the following rules:
-   * ```
-   *   - If r.Time is the zero time, ignore the time.
-   *   - If r.PC is zero, ignore it.
-   *   - Attr's values should be resolved.
-   *   - If an Attr's key and value are both the zero value, ignore the Attr.
-   *     This can be tested with attr.Equal(Attr{}).
-   *   - If a group's key is empty, inline the group's Attrs.
-   *   - If a group has no Attrs (even if it has a non-empty key),
-   *     ignore it.
-   * ```
-   */
-  handle(_arg0: context.Context, _arg1: Record): void
-  /**
-   * WithAttrs returns a new Handler whose attributes consist of
-   * both the receiver's attributes and the arguments.
-   * The Handler owns the slice: it may retain, modify or discard it.
-   */
-  withAttrs(attrs: Array<Attr>): Handler
-  /**
-   * WithGroup returns a new Handler with the given group appended to
-   * the receiver's existing groups.
-   * The keys of all subsequent attributes, whether added by With or in a
-   * Record, should be qualified by the sequence of group names.
-   * 
-   * How this qualification happens is up to the Handler, so long as
-   * this Handler's attribute keys differ from those of another Handler
-   * with a different sequence of group names.
-   * 
-   * A Handler should treat WithGroup as starting a Group of Attrs that ends
-   * at the end of the log event. That is,
-   * 
-   * ```
-   *     logger.WithGroup("s").LogAttrs(level, msg, slog.Int("a", 1), slog.Int("b", 2))
-   * ```
-   * 
-   * should behave like
-   * 
-   * ```
-   *     logger.LogAttrs(level, msg, slog.Group("s", slog.Int("a", 1), slog.Int("b", 2)))
-   * ```
-   * 
-   * If the name is empty, WithGroup returns the receiver.
-   */
-  withGroup(name: string): Handler
- }
- /**
-  * A Level is the importance or severity of a log event.
-  * The higher the level, the more important or severe the event.
-  */
- interface Level extends Number{}
- interface Level {
-  /**
-   * String returns a name for the level.
-   * If the level has a name, then that name
-   * in uppercase is returned.
-   * If the level is between named values, then
-   * an integer is appended to the uppercased name.
-   * Examples:
-   * 
-   * ```
-   * 	LevelWarn.String() => "WARN"
-   * 	(LevelInfo+2).String() => "INFO+2"
-   * ```
-   */
-  string(): string
- }
- interface Level {
-  /**
-   * MarshalJSON implements [encoding/json.Marshaler]
-   * by quoting the output of [Level.String].
-   */
-  marshalJSON(): string|Array<number>
- }
- interface Level {
-  /**
-   * UnmarshalJSON implements [encoding/json.Unmarshaler]
-   * It accepts any string produced by [Level.MarshalJSON],
-   * ignoring case.
-   * It also accepts numeric offsets that would result in a different string on
-   * output. For example, "Error-8" would marshal as "INFO".
-   */
-  unmarshalJSON(data: string|Array<number>): void
- }
- interface Level {
-  /**
-   * MarshalText implements [encoding.TextMarshaler]
-   * by calling [Level.String].
-   */
-  marshalText(): string|Array<number>
- }
- interface Level {
-  /**
-   * UnmarshalText implements [encoding.TextUnmarshaler].
-   * It accepts any string produced by [Level.MarshalText],
-   * ignoring case.
-   * It also accepts numeric offsets that would result in a different string on
-   * output. For example, "Error-8" would marshal as "INFO".
-   */
-  unmarshalText(data: string|Array<number>): void
- }
- interface Level {
-  /**
-   * Level returns the receiver.
-   * It implements Leveler.
-   */
-  level(): Level
- }
- // @ts-ignore
- import loginternal = internal
-}
-
-namespace subscriptions {
- /**
-  * Message defines a client's channel data.
-  */
- interface Message {
-  name: string
-  data: string|Array<number>
- }
- /**
-  * Client is an interface for a generic subscription client.
-  */
- interface Client {
-  [key:string]: any;
-  /**
-   * Id Returns the unique id of the client.
-   */
-  id(): string
-  /**
-   * Channel returns the client's communication channel.
-   */
-  channel(): undefined
-  /**
-   * Subscriptions returns a shallow copy of the the client subscriptions matching the prefixes.
-   * If no prefix is specified, returns all subscriptions.
-   */
-  subscriptions(...prefixes: string[]): _TygojaDict
-  /**
-   * Subscribe subscribes the client to the provided subscriptions list.
-   * 
-   * Each subscription can also have "options" (json serialized SubscriptionOptions) as query parameter.
-   * 
-   * Example:
-   * 
-   * ```
-   * 	Subscribe(
-   * 	    "subscriptionA",
-   * 	    `subscriptionB?options={"query":{"a":1},"headers":{"x_token":"abc"}}`,
-   * 	)
-   * ```
-   */
-  subscribe(...subs: string[]): void
-  /**
-   * Unsubscribe unsubscribes the client from the provided subscriptions list.
-   */
-  unsubscribe(...subs: string[]): void
-  /**
-   * HasSubscription checks if the client is subscribed to `sub`.
-   */
-  hasSubscription(sub: string): boolean
-  /**
-   * Set stores any value to the client's context.
-   */
-  set(key: string, value: any): void
-  /**
-   * Unset removes a single value from the client's context.
-   */
-  unset(key: string): void
-  /**
-   * Get retrieves the key value from the client's context.
-   */
-  get(key: string): any
-  /**
-   * Discard marks the client as "discarded", meaning that it
-   * shouldn't be used anymore for sending new messages.
-   * 
-   * It is safe to call Discard() multiple times.
-   */
-  discard(): void
-  /**
-   * IsDiscarded indicates whether the client has been "discarded"
-   * and should no longer be used.
-   */
-  isDiscarded(): boolean
-  /**
-   * Send sends the specified message to the client's channel (if not discarded).
-   */
-  send(m: Message): void
  }
 }
 
@@ -19206,7 +17816,6 @@ namespace bufio {
    * the buffered reader to read from r.
    * Calling Reset on the zero value of Reader initializes the internal buffer
    * to the default size.
-   * Calling b.Reset(b) (that is, resetting a Reader to itself) does nothing.
    */
   reset(r: io.Reader): void
  }
@@ -19375,7 +17984,6 @@ namespace bufio {
    * resets b to write its output to w.
    * Calling Reset on the zero value of Writer initializes the internal buffer
    * to the default size.
-   * Calling w.Reset(w) (that is, resetting a Writer to itself) does nothing.
    */
   reset(w: io.Writer): void
  }
@@ -19449,6 +18057,19 @@ namespace bufio {
 }
 
 /**
+ * Package types implements some commonly used db serializable types
+ * like datetime, json, etc.
+ */
+namespace types {
+}
+
+namespace search {
+}
+
+namespace subscriptions {
+}
+
+/**
  * Package mail implements parsing of mail messages.
  * 
  * For the most part, this package follows the syntax as specified by RFC 5322 and
@@ -19461,7 +18082,6 @@ namespace bufio {
  *     such as breaking addresses across lines.
  *   - No unicode normalization is performed.
  *   - The special characters ()[]:;@\, are allowed to appear unquoted in names.
- *   - A leading From line is permitted, as in mbox format (RFC 4155).
  * ```
  */
 namespace mail {
@@ -19481,954 +18101,5 @@ namespace mail {
    * the name will be rendered according to RFC 2047.
    */
   string(): string
- }
-}
-
-/**
- * Package slog provides structured logging,
- * in which log records include a message,
- * a severity level, and various other attributes
- * expressed as key-value pairs.
- * 
- * It defines a type, [Logger],
- * which provides several methods (such as [Logger.Info] and [Logger.Error])
- * for reporting events of interest.
- * 
- * Each Logger is associated with a [Handler].
- * A Logger output method creates a [Record] from the method arguments
- * and passes it to the Handler, which decides how to handle it.
- * There is a default Logger accessible through top-level functions
- * (such as [Info] and [Error]) that call the corresponding Logger methods.
- * 
- * A log record consists of a time, a level, a message, and a set of key-value
- * pairs, where the keys are strings and the values may be of any type.
- * As an example,
- * 
- * ```
- * 	slog.Info("hello", "count", 3)
- * ```
- * 
- * creates a record containing the time of the call,
- * a level of Info, the message "hello", and a single
- * pair with key "count" and value 3.
- * 
- * The [Info] top-level function calls the [Logger.Info] method on the default Logger.
- * In addition to [Logger.Info], there are methods for Debug, Warn and Error levels.
- * Besides these convenience methods for common levels,
- * there is also a [Logger.Log] method which takes the level as an argument.
- * Each of these methods has a corresponding top-level function that uses the
- * default logger.
- * 
- * The default handler formats the log record's message, time, level, and attributes
- * as a string and passes it to the [log] package.
- * 
- * ```
- * 	2022/11/08 15:28:26 INFO hello count=3
- * ```
- * 
- * For more control over the output format, create a logger with a different handler.
- * This statement uses [New] to create a new logger with a TextHandler
- * that writes structured records in text form to standard error:
- * 
- * ```
- * 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
- * ```
- * 
- * [TextHandler] output is a sequence of key=value pairs, easily and unambiguously
- * parsed by machine. This statement:
- * 
- * ```
- * 	logger.Info("hello", "count", 3)
- * ```
- * 
- * produces this output:
- * 
- * ```
- * 	time=2022-11-08T15:28:26.000-05:00 level=INFO msg=hello count=3
- * ```
- * 
- * The package also provides [JSONHandler], whose output is line-delimited JSON:
- * 
- * ```
- * 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
- * 	logger.Info("hello", "count", 3)
- * ```
- * 
- * produces this output:
- * 
- * ```
- * 	{"time":"2022-11-08T15:28:26.000000000-05:00","level":"INFO","msg":"hello","count":3}
- * ```
- * 
- * Both [TextHandler] and [JSONHandler] can be configured with [HandlerOptions].
- * There are options for setting the minimum level (see Levels, below),
- * displaying the source file and line of the log call, and
- * modifying attributes before they are logged.
- * 
- * Setting a logger as the default with
- * 
- * ```
- * 	slog.SetDefault(logger)
- * ```
- * 
- * will cause the top-level functions like [Info] to use it.
- * [SetDefault] also updates the default logger used by the [log] package,
- * so that existing applications that use [log.Printf] and related functions
- * will send log records to the logger's handler without needing to be rewritten.
- * 
- * Some attributes are common to many log calls.
- * For example, you may wish to include the URL or trace identifier of a server request
- * with all log events arising from the request.
- * Rather than repeat the attribute with every log call, you can use [Logger.With]
- * to construct a new Logger containing the attributes:
- * 
- * ```
- * 	logger2 := logger.With("url", r.URL)
- * ```
- * 
- * The arguments to With are the same key-value pairs used in [Logger.Info].
- * The result is a new Logger with the same handler as the original, but additional
- * attributes that will appear in the output of every call.
- * 
- * # Levels
- * 
- * A [Level] is an integer representing the importance or severity of a log event.
- * The higher the level, the more severe the event.
- * This package defines constants for the most common levels,
- * but any int can be used as a level.
- * 
- * In an application, you may wish to log messages only at a certain level or greater.
- * One common configuration is to log messages at Info or higher levels,
- * suppressing debug logging until it is needed.
- * The built-in handlers can be configured with the minimum level to output by
- * setting [HandlerOptions.Level].
- * The program's `main` function typically does this.
- * The default value is LevelInfo.
- * 
- * Setting the [HandlerOptions.Level] field to a [Level] value
- * fixes the handler's minimum level throughout its lifetime.
- * Setting it to a [LevelVar] allows the level to be varied dynamically.
- * A LevelVar holds a Level and is safe to read or write from multiple
- * goroutines.
- * To vary the level dynamically for an entire program, first initialize
- * a global LevelVar:
- * 
- * ```
- * 	var programLevel = new(slog.LevelVar) // Info by default
- * ```
- * 
- * Then use the LevelVar to construct a handler, and make it the default:
- * 
- * ```
- * 	h := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
- * 	slog.SetDefault(slog.New(h))
- * ```
- * 
- * Now the program can change its logging level with a single statement:
- * 
- * ```
- * 	programLevel.Set(slog.LevelDebug)
- * ```
- * 
- * # Groups
- * 
- * Attributes can be collected into groups.
- * A group has a name that is used to qualify the names of its attributes.
- * How this qualification is displayed depends on the handler.
- * [TextHandler] separates the group and attribute names with a dot.
- * [JSONHandler] treats each group as a separate JSON object, with the group name as the key.
- * 
- * Use [Group] to create a Group attribute from a name and a list of key-value pairs:
- * 
- * ```
- * 	slog.Group("request",
- * 	    "method", r.Method,
- * 	    "url", r.URL)
- * ```
- * 
- * TextHandler would display this group as
- * 
- * ```
- * 	request.method=GET request.url=http://example.com
- * ```
- * 
- * JSONHandler would display it as
- * 
- * ```
- * 	"request":{"method":"GET","url":"http://example.com"}
- * ```
- * 
- * Use [Logger.WithGroup] to qualify all of a Logger's output
- * with a group name. Calling WithGroup on a Logger results in a
- * new Logger with the same Handler as the original, but with all
- * its attributes qualified by the group name.
- * 
- * This can help prevent duplicate attribute keys in large systems,
- * where subsystems might use the same keys.
- * Pass each subsystem a different Logger with its own group name so that
- * potential duplicates are qualified:
- * 
- * ```
- * 	logger := slog.Default().With("id", systemID)
- * 	parserLogger := logger.WithGroup("parser")
- * 	parseInput(input, parserLogger)
- * ```
- * 
- * When parseInput logs with parserLogger, its keys will be qualified with "parser",
- * so even if it uses the common key "id", the log line will have distinct keys.
- * 
- * # Contexts
- * 
- * Some handlers may wish to include information from the [context.Context] that is
- * available at the call site. One example of such information
- * is the identifier for the current span when tracing is enabled.
- * 
- * The [Logger.Log] and [Logger.LogAttrs] methods take a context as a first
- * argument, as do their corresponding top-level functions.
- * 
- * Although the convenience methods on Logger (Info and so on) and the
- * corresponding top-level functions do not take a context, the alternatives ending
- * in "Context" do. For example,
- * 
- * ```
- * 	slog.InfoContext(ctx, "message")
- * ```
- * 
- * It is recommended to pass a context to an output method if one is available.
- * 
- * # Attrs and Values
- * 
- * An [Attr] is a key-value pair. The Logger output methods accept Attrs as well as
- * alternating keys and values. The statement
- * 
- * ```
- * 	slog.Info("hello", slog.Int("count", 3))
- * ```
- * 
- * behaves the same as
- * 
- * ```
- * 	slog.Info("hello", "count", 3)
- * ```
- * 
- * There are convenience constructors for [Attr] such as [Int], [String], and [Bool]
- * for common types, as well as the function [Any] for constructing Attrs of any
- * type.
- * 
- * The value part of an Attr is a type called [Value].
- * Like an [any], a Value can hold any Go value,
- * but it can represent typical values, including all numbers and strings,
- * without an allocation.
- * 
- * For the most efficient log output, use [Logger.LogAttrs].
- * It is similar to [Logger.Log] but accepts only Attrs, not alternating
- * keys and values; this allows it, too, to avoid allocation.
- * 
- * The call
- * 
- * ```
- * 	logger.LogAttrs(ctx, slog.LevelInfo, "hello", slog.Int("count", 3))
- * ```
- * 
- * is the most efficient way to achieve the same output as
- * 
- * ```
- * 	slog.Info("hello", "count", 3)
- * ```
- * 
- * # Customizing a type's logging behavior
- * 
- * If a type implements the [LogValuer] interface, the [Value] returned from its LogValue
- * method is used for logging. You can use this to control how values of the type
- * appear in logs. For example, you can redact secret information like passwords,
- * or gather a struct's fields in a Group. See the examples under [LogValuer] for
- * details.
- * 
- * A LogValue method may return a Value that itself implements [LogValuer]. The [Value.Resolve]
- * method handles these cases carefully, avoiding infinite loops and unbounded recursion.
- * Handler authors and others may wish to use Value.Resolve instead of calling LogValue directly.
- * 
- * # Wrapping output methods
- * 
- * The logger functions use reflection over the call stack to find the file name
- * and line number of the logging call within the application. This can produce
- * incorrect source information for functions that wrap slog. For instance, if you
- * define this function in file mylog.go:
- * 
- * ```
- * 	func Infof(format string, args ...any) {
- * 	    slog.Default().Info(fmt.Sprintf(format, args...))
- * 	}
- * ```
- * 
- * and you call it like this in main.go:
- * 
- * ```
- * 	Infof(slog.Default(), "hello, %s", "world")
- * ```
- * 
- * then slog will report the source file as mylog.go, not main.go.
- * 
- * A correct implementation of Infof will obtain the source location
- * (pc) and pass it to NewRecord.
- * The Infof function in the package-level example called "wrapping"
- * demonstrates how to do this.
- * 
- * # Working with Records
- * 
- * Sometimes a Handler will need to modify a Record
- * before passing it on to another Handler or backend.
- * A Record contains a mixture of simple public fields (e.g. Time, Level, Message)
- * and hidden fields that refer to state (such as attributes) indirectly. This
- * means that modifying a simple copy of a Record (e.g. by calling
- * [Record.Add] or [Record.AddAttrs] to add attributes)
- * may have unexpected effects on the original.
- * Before modifying a Record, use [Record.Clone] to
- * create a copy that shares no state with the original,
- * or create a new Record with [NewRecord]
- * and build up its Attrs by traversing the old ones with [Record.Attrs].
- * 
- * # Performance considerations
- * 
- * If profiling your application demonstrates that logging is taking significant time,
- * the following suggestions may help.
- * 
- * If many log lines have a common attribute, use [Logger.With] to create a Logger with
- * that attribute. The built-in handlers will format that attribute only once, at the
- * call to [Logger.With]. The [Handler] interface is designed to allow that optimization,
- * and a well-written Handler should take advantage of it.
- * 
- * The arguments to a log call are always evaluated, even if the log event is discarded.
- * If possible, defer computation so that it happens only if the value is actually logged.
- * For example, consider the call
- * 
- * ```
- * 	slog.Info("starting request", "url", r.URL.String())  // may compute String unnecessarily
- * ```
- * 
- * The URL.String method will be called even if the logger discards Info-level events.
- * Instead, pass the URL directly:
- * 
- * ```
- * 	slog.Info("starting request", "url", &r.URL) // calls URL.String only if needed
- * ```
- * 
- * The built-in [TextHandler] will call its String method, but only
- * if the log event is enabled.
- * Avoiding the call to String also preserves the structure of the underlying value.
- * For example [JSONHandler] emits the components of the parsed URL as a JSON object.
- * If you want to avoid eagerly paying the cost of the String call
- * without causing the handler to potentially inspect the structure of the value,
- * wrap the value in a fmt.Stringer implementation that hides its Marshal methods.
- * 
- * You can also use the [LogValuer] interface to avoid unnecessary work in disabled log
- * calls. Say you need to log some expensive value:
- * 
- * ```
- * 	slog.Debug("frobbing", "value", computeExpensiveValue(arg))
- * ```
- * 
- * Even if this line is disabled, computeExpensiveValue will be called.
- * To avoid that, define a type implementing LogValuer:
- * 
- * ```
- * 	type expensive struct { arg int }
- * 
- * 	func (e expensive) LogValue() slog.Value {
- * 	    return slog.AnyValue(computeExpensiveValue(e.arg))
- * 	}
- * ```
- * 
- * Then use a value of that type in log calls:
- * 
- * ```
- * 	slog.Debug("frobbing", "value", expensive{arg})
- * ```
- * 
- * Now computeExpensiveValue will only be called when the line is enabled.
- * 
- * The built-in handlers acquire a lock before calling [io.Writer.Write]
- * to ensure that each record is written in one piece. User-defined
- * handlers are responsible for their own locking.
- * 
- * # Writing a handler
- * 
- * For a guide to writing a custom handler, see https://golang.org/s/slog-handler-guide.
- */
-namespace slog {
- // @ts-ignore
- import loginternal = internal
- /**
-  * A Record holds information about a log event.
-  * Copies of a Record share state.
-  * Do not modify a Record after handing out a copy to it.
-  * Call [NewRecord] to create a new Record.
-  * Use [Record.Clone] to create a copy with no shared state.
-  */
- interface Record {
-  /**
-   * The time at which the output method (Log, Info, etc.) was called.
-   */
-  time: time.Time
-  /**
-   * The log message.
-   */
-  message: string
-  /**
-   * The level of the event.
-   */
-  level: Level
-  /**
-   * The program counter at the time the record was constructed, as determined
-   * by runtime.Callers. If zero, no program counter is available.
-   * 
-   * The only valid use for this value is as an argument to
-   * [runtime.CallersFrames]. In particular, it must not be passed to
-   * [runtime.FuncForPC].
-   */
-  pc: number
- }
- interface Record {
-  /**
-   * Clone returns a copy of the record with no shared state.
-   * The original record and the clone can both be modified
-   * without interfering with each other.
-   */
-  clone(): Record
- }
- interface Record {
-  /**
-   * NumAttrs returns the number of attributes in the Record.
-   */
-  numAttrs(): number
- }
- interface Record {
-  /**
-   * Attrs calls f on each Attr in the Record.
-   * Iteration stops if f returns false.
-   */
-  attrs(f: (_arg0: Attr) => boolean): void
- }
- interface Record {
-  /**
-   * AddAttrs appends the given Attrs to the Record's list of Attrs.
-   * It omits empty groups.
-   */
-  addAttrs(...attrs: Attr[]): void
- }
- interface Record {
-  /**
-   * Add converts the args to Attrs as described in [Logger.Log],
-   * then appends the Attrs to the Record's list of Attrs.
-   * It omits empty groups.
-   */
-  add(...args: any[]): void
- }
- /**
-  * A Value can represent any Go value, but unlike type any,
-  * it can represent most small values without an allocation.
-  * The zero Value corresponds to nil.
-  */
- interface Value {
- }
- interface Value {
-  /**
-   * Kind returns v's Kind.
-   */
-  kind(): Kind
- }
- interface Value {
-  /**
-   * Any returns v's value as an any.
-   */
-  any(): any
- }
- interface Value {
-  /**
-   * String returns Value's value as a string, formatted like fmt.Sprint. Unlike
-   * the methods Int64, Float64, and so on, which panic if v is of the
-   * wrong kind, String never panics.
-   */
-  string(): string
- }
- interface Value {
-  /**
-   * Int64 returns v's value as an int64. It panics
-   * if v is not a signed integer.
-   */
-  int64(): number
- }
- interface Value {
-  /**
-   * Uint64 returns v's value as a uint64. It panics
-   * if v is not an unsigned integer.
-   */
-  uint64(): number
- }
- interface Value {
-  /**
-   * Bool returns v's value as a bool. It panics
-   * if v is not a bool.
-   */
-  bool(): boolean
- }
- interface Value {
-  /**
-   * Duration returns v's value as a time.Duration. It panics
-   * if v is not a time.Duration.
-   */
-  duration(): time.Duration
- }
- interface Value {
-  /**
-   * Float64 returns v's value as a float64. It panics
-   * if v is not a float64.
-   */
-  float64(): number
- }
- interface Value {
-  /**
-   * Time returns v's value as a time.Time. It panics
-   * if v is not a time.Time.
-   */
-  time(): time.Time
- }
- interface Value {
-  /**
-   * LogValuer returns v's value as a LogValuer. It panics
-   * if v is not a LogValuer.
-   */
-  logValuer(): LogValuer
- }
- interface Value {
-  /**
-   * Group returns v's value as a []Attr.
-   * It panics if v's Kind is not KindGroup.
-   */
-  group(): Array<Attr>
- }
- interface Value {
-  /**
-   * Equal reports whether v and w represent the same Go value.
-   */
-  equal(w: Value): boolean
- }
- interface Value {
-  /**
-   * Resolve repeatedly calls LogValue on v while it implements LogValuer,
-   * and returns the result.
-   * If v resolves to a group, the group's attributes' values are not recursively
-   * resolved.
-   * If the number of LogValue calls exceeds a threshold, a Value containing an
-   * error is returned.
-   * Resolve's return value is guaranteed not to be of Kind KindLogValuer.
-   */
-  resolve(): Value
- }
-}
-
-namespace subscriptions {
-}
-
-/**
- * Package types implements some commonly used db serializable types
- * like datetime, json, etc.
- */
-namespace types {
-}
-
-namespace search {
-}
-
-/**
- * Package slog provides structured logging,
- * in which log records include a message,
- * a severity level, and various other attributes
- * expressed as key-value pairs.
- * 
- * It defines a type, [Logger],
- * which provides several methods (such as [Logger.Info] and [Logger.Error])
- * for reporting events of interest.
- * 
- * Each Logger is associated with a [Handler].
- * A Logger output method creates a [Record] from the method arguments
- * and passes it to the Handler, which decides how to handle it.
- * There is a default Logger accessible through top-level functions
- * (such as [Info] and [Error]) that call the corresponding Logger methods.
- * 
- * A log record consists of a time, a level, a message, and a set of key-value
- * pairs, where the keys are strings and the values may be of any type.
- * As an example,
- * 
- * ```
- * 	slog.Info("hello", "count", 3)
- * ```
- * 
- * creates a record containing the time of the call,
- * a level of Info, the message "hello", and a single
- * pair with key "count" and value 3.
- * 
- * The [Info] top-level function calls the [Logger.Info] method on the default Logger.
- * In addition to [Logger.Info], there are methods for Debug, Warn and Error levels.
- * Besides these convenience methods for common levels,
- * there is also a [Logger.Log] method which takes the level as an argument.
- * Each of these methods has a corresponding top-level function that uses the
- * default logger.
- * 
- * The default handler formats the log record's message, time, level, and attributes
- * as a string and passes it to the [log] package.
- * 
- * ```
- * 	2022/11/08 15:28:26 INFO hello count=3
- * ```
- * 
- * For more control over the output format, create a logger with a different handler.
- * This statement uses [New] to create a new logger with a TextHandler
- * that writes structured records in text form to standard error:
- * 
- * ```
- * 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
- * ```
- * 
- * [TextHandler] output is a sequence of key=value pairs, easily and unambiguously
- * parsed by machine. This statement:
- * 
- * ```
- * 	logger.Info("hello", "count", 3)
- * ```
- * 
- * produces this output:
- * 
- * ```
- * 	time=2022-11-08T15:28:26.000-05:00 level=INFO msg=hello count=3
- * ```
- * 
- * The package also provides [JSONHandler], whose output is line-delimited JSON:
- * 
- * ```
- * 	logger := slog.New(slog.NewJSONHandler(os.Stdout, nil))
- * 	logger.Info("hello", "count", 3)
- * ```
- * 
- * produces this output:
- * 
- * ```
- * 	{"time":"2022-11-08T15:28:26.000000000-05:00","level":"INFO","msg":"hello","count":3}
- * ```
- * 
- * Both [TextHandler] and [JSONHandler] can be configured with [HandlerOptions].
- * There are options for setting the minimum level (see Levels, below),
- * displaying the source file and line of the log call, and
- * modifying attributes before they are logged.
- * 
- * Setting a logger as the default with
- * 
- * ```
- * 	slog.SetDefault(logger)
- * ```
- * 
- * will cause the top-level functions like [Info] to use it.
- * [SetDefault] also updates the default logger used by the [log] package,
- * so that existing applications that use [log.Printf] and related functions
- * will send log records to the logger's handler without needing to be rewritten.
- * 
- * Some attributes are common to many log calls.
- * For example, you may wish to include the URL or trace identifier of a server request
- * with all log events arising from the request.
- * Rather than repeat the attribute with every log call, you can use [Logger.With]
- * to construct a new Logger containing the attributes:
- * 
- * ```
- * 	logger2 := logger.With("url", r.URL)
- * ```
- * 
- * The arguments to With are the same key-value pairs used in [Logger.Info].
- * The result is a new Logger with the same handler as the original, but additional
- * attributes that will appear in the output of every call.
- * 
- * # Levels
- * 
- * A [Level] is an integer representing the importance or severity of a log event.
- * The higher the level, the more severe the event.
- * This package defines constants for the most common levels,
- * but any int can be used as a level.
- * 
- * In an application, you may wish to log messages only at a certain level or greater.
- * One common configuration is to log messages at Info or higher levels,
- * suppressing debug logging until it is needed.
- * The built-in handlers can be configured with the minimum level to output by
- * setting [HandlerOptions.Level].
- * The program's `main` function typically does this.
- * The default value is LevelInfo.
- * 
- * Setting the [HandlerOptions.Level] field to a [Level] value
- * fixes the handler's minimum level throughout its lifetime.
- * Setting it to a [LevelVar] allows the level to be varied dynamically.
- * A LevelVar holds a Level and is safe to read or write from multiple
- * goroutines.
- * To vary the level dynamically for an entire program, first initialize
- * a global LevelVar:
- * 
- * ```
- * 	var programLevel = new(slog.LevelVar) // Info by default
- * ```
- * 
- * Then use the LevelVar to construct a handler, and make it the default:
- * 
- * ```
- * 	h := slog.NewJSONHandler(os.Stderr, &slog.HandlerOptions{Level: programLevel})
- * 	slog.SetDefault(slog.New(h))
- * ```
- * 
- * Now the program can change its logging level with a single statement:
- * 
- * ```
- * 	programLevel.Set(slog.LevelDebug)
- * ```
- * 
- * # Groups
- * 
- * Attributes can be collected into groups.
- * A group has a name that is used to qualify the names of its attributes.
- * How this qualification is displayed depends on the handler.
- * [TextHandler] separates the group and attribute names with a dot.
- * [JSONHandler] treats each group as a separate JSON object, with the group name as the key.
- * 
- * Use [Group] to create a Group attribute from a name and a list of key-value pairs:
- * 
- * ```
- * 	slog.Group("request",
- * 	    "method", r.Method,
- * 	    "url", r.URL)
- * ```
- * 
- * TextHandler would display this group as
- * 
- * ```
- * 	request.method=GET request.url=http://example.com
- * ```
- * 
- * JSONHandler would display it as
- * 
- * ```
- * 	"request":{"method":"GET","url":"http://example.com"}
- * ```
- * 
- * Use [Logger.WithGroup] to qualify all of a Logger's output
- * with a group name. Calling WithGroup on a Logger results in a
- * new Logger with the same Handler as the original, but with all
- * its attributes qualified by the group name.
- * 
- * This can help prevent duplicate attribute keys in large systems,
- * where subsystems might use the same keys.
- * Pass each subsystem a different Logger with its own group name so that
- * potential duplicates are qualified:
- * 
- * ```
- * 	logger := slog.Default().With("id", systemID)
- * 	parserLogger := logger.WithGroup("parser")
- * 	parseInput(input, parserLogger)
- * ```
- * 
- * When parseInput logs with parserLogger, its keys will be qualified with "parser",
- * so even if it uses the common key "id", the log line will have distinct keys.
- * 
- * # Contexts
- * 
- * Some handlers may wish to include information from the [context.Context] that is
- * available at the call site. One example of such information
- * is the identifier for the current span when tracing is enabled.
- * 
- * The [Logger.Log] and [Logger.LogAttrs] methods take a context as a first
- * argument, as do their corresponding top-level functions.
- * 
- * Although the convenience methods on Logger (Info and so on) and the
- * corresponding top-level functions do not take a context, the alternatives ending
- * in "Context" do. For example,
- * 
- * ```
- * 	slog.InfoContext(ctx, "message")
- * ```
- * 
- * It is recommended to pass a context to an output method if one is available.
- * 
- * # Attrs and Values
- * 
- * An [Attr] is a key-value pair. The Logger output methods accept Attrs as well as
- * alternating keys and values. The statement
- * 
- * ```
- * 	slog.Info("hello", slog.Int("count", 3))
- * ```
- * 
- * behaves the same as
- * 
- * ```
- * 	slog.Info("hello", "count", 3)
- * ```
- * 
- * There are convenience constructors for [Attr] such as [Int], [String], and [Bool]
- * for common types, as well as the function [Any] for constructing Attrs of any
- * type.
- * 
- * The value part of an Attr is a type called [Value].
- * Like an [any], a Value can hold any Go value,
- * but it can represent typical values, including all numbers and strings,
- * without an allocation.
- * 
- * For the most efficient log output, use [Logger.LogAttrs].
- * It is similar to [Logger.Log] but accepts only Attrs, not alternating
- * keys and values; this allows it, too, to avoid allocation.
- * 
- * The call
- * 
- * ```
- * 	logger.LogAttrs(ctx, slog.LevelInfo, "hello", slog.Int("count", 3))
- * ```
- * 
- * is the most efficient way to achieve the same output as
- * 
- * ```
- * 	slog.Info("hello", "count", 3)
- * ```
- * 
- * # Customizing a type's logging behavior
- * 
- * If a type implements the [LogValuer] interface, the [Value] returned from its LogValue
- * method is used for logging. You can use this to control how values of the type
- * appear in logs. For example, you can redact secret information like passwords,
- * or gather a struct's fields in a Group. See the examples under [LogValuer] for
- * details.
- * 
- * A LogValue method may return a Value that itself implements [LogValuer]. The [Value.Resolve]
- * method handles these cases carefully, avoiding infinite loops and unbounded recursion.
- * Handler authors and others may wish to use Value.Resolve instead of calling LogValue directly.
- * 
- * # Wrapping output methods
- * 
- * The logger functions use reflection over the call stack to find the file name
- * and line number of the logging call within the application. This can produce
- * incorrect source information for functions that wrap slog. For instance, if you
- * define this function in file mylog.go:
- * 
- * ```
- * 	func Infof(format string, args ...any) {
- * 	    slog.Default().Info(fmt.Sprintf(format, args...))
- * 	}
- * ```
- * 
- * and you call it like this in main.go:
- * 
- * ```
- * 	Infof(slog.Default(), "hello, %s", "world")
- * ```
- * 
- * then slog will report the source file as mylog.go, not main.go.
- * 
- * A correct implementation of Infof will obtain the source location
- * (pc) and pass it to NewRecord.
- * The Infof function in the package-level example called "wrapping"
- * demonstrates how to do this.
- * 
- * # Working with Records
- * 
- * Sometimes a Handler will need to modify a Record
- * before passing it on to another Handler or backend.
- * A Record contains a mixture of simple public fields (e.g. Time, Level, Message)
- * and hidden fields that refer to state (such as attributes) indirectly. This
- * means that modifying a simple copy of a Record (e.g. by calling
- * [Record.Add] or [Record.AddAttrs] to add attributes)
- * may have unexpected effects on the original.
- * Before modifying a Record, use [Record.Clone] to
- * create a copy that shares no state with the original,
- * or create a new Record with [NewRecord]
- * and build up its Attrs by traversing the old ones with [Record.Attrs].
- * 
- * # Performance considerations
- * 
- * If profiling your application demonstrates that logging is taking significant time,
- * the following suggestions may help.
- * 
- * If many log lines have a common attribute, use [Logger.With] to create a Logger with
- * that attribute. The built-in handlers will format that attribute only once, at the
- * call to [Logger.With]. The [Handler] interface is designed to allow that optimization,
- * and a well-written Handler should take advantage of it.
- * 
- * The arguments to a log call are always evaluated, even if the log event is discarded.
- * If possible, defer computation so that it happens only if the value is actually logged.
- * For example, consider the call
- * 
- * ```
- * 	slog.Info("starting request", "url", r.URL.String())  // may compute String unnecessarily
- * ```
- * 
- * The URL.String method will be called even if the logger discards Info-level events.
- * Instead, pass the URL directly:
- * 
- * ```
- * 	slog.Info("starting request", "url", &r.URL) // calls URL.String only if needed
- * ```
- * 
- * The built-in [TextHandler] will call its String method, but only
- * if the log event is enabled.
- * Avoiding the call to String also preserves the structure of the underlying value.
- * For example [JSONHandler] emits the components of the parsed URL as a JSON object.
- * If you want to avoid eagerly paying the cost of the String call
- * without causing the handler to potentially inspect the structure of the value,
- * wrap the value in a fmt.Stringer implementation that hides its Marshal methods.
- * 
- * You can also use the [LogValuer] interface to avoid unnecessary work in disabled log
- * calls. Say you need to log some expensive value:
- * 
- * ```
- * 	slog.Debug("frobbing", "value", computeExpensiveValue(arg))
- * ```
- * 
- * Even if this line is disabled, computeExpensiveValue will be called.
- * To avoid that, define a type implementing LogValuer:
- * 
- * ```
- * 	type expensive struct { arg int }
- * 
- * 	func (e expensive) LogValue() slog.Value {
- * 	    return slog.AnyValue(computeExpensiveValue(e.arg))
- * 	}
- * ```
- * 
- * Then use a value of that type in log calls:
- * 
- * ```
- * 	slog.Debug("frobbing", "value", expensive{arg})
- * ```
- * 
- * Now computeExpensiveValue will only be called when the line is enabled.
- * 
- * The built-in handlers acquire a lock before calling [io.Writer.Write]
- * to ensure that each record is written in one piece. User-defined
- * handlers are responsible for their own locking.
- * 
- * # Writing a handler
- * 
- * For a guide to writing a custom handler, see https://golang.org/s/slog-handler-guide.
- */
-namespace slog {
- // @ts-ignore
- import loginternal = internal
- /**
-  * Kind is the kind of a Value.
-  */
- interface Kind extends Number{}
- interface Kind {
-  string(): string
- }
- /**
-  * A LogValuer is any Go value that can convert itself into a Value for logging.
-  * 
-  * This mechanism may be used to defer expensive operations until they are
-  * needed, or to expand a single value into a sequence of components.
-  */
- interface LogValuer {
-  [key:string]: any;
-  logValue(): Value
  }
 }

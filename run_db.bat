@@ -1,1 +1,1 @@
-.\pb_app\pocketbase.exe serve
+pb_app\pocketbase.exe serve
